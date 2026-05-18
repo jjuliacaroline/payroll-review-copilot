@@ -36,9 +36,9 @@ export const demoAnomalies: PayrollAnomaly[] = [
     type: "net_salary_change",
     title: "Net salary changed sharply",
     explanation:
-      "The current net salary is noticeably higher than the previous month after a one-off bonus rolled off.",
-    evidence: "Net pay moved +12% compared with the April payroll snapshot.",
-    suggestedNextAction: "Confirm that the change is expected before sending the payroll onward.",
+      "The current net salary is noticeably lower than the previous month after a one-off bonus rolled off.",
+    evidence: "Net pay moved -12% compared with the April payroll snapshot.",
+    suggestedNextAction: "Confirm that the decrease is expected before sending the payroll onward.",
     status: "waiting_for_customer",
     previousMonthContext: "April included a temporary project bonus that is absent in May.",
     blockingApproval: false,
@@ -100,4 +100,3 @@ export const demoAnomalies: PayrollAnomaly[] = [
     blockingApproval: true,
   },
 ];
-
