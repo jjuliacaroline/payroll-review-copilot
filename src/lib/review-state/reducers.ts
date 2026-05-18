@@ -44,8 +44,11 @@ export function reduceDemoReviewState(
 ): DemoReviewState {
   const nextState: DemoReviewAnomalyState = {
     status: input.nextStatus,
-    reviewedAt: input.at,
   };
+
+  if (input.nextStatus === "reviewed") {
+    nextState.reviewedAt = input.at;
+  }
 
   if (input.nextStatus === "ignored" && input.ignoredReason) {
     nextState.ignoredReason = input.ignoredReason;
@@ -64,7 +67,7 @@ export function reduceDemoReviewState(
       ...reviewState.anomalyStates,
       [input.anomalyId]: nextState,
     },
-    auditEvents: [...reviewState.auditEvents, input.auditEvent],
+    auditEvents: [...reviewState.auditEvents, input.auditEvent].slice(-50),
   };
 }
 

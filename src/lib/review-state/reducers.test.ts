@@ -49,8 +49,38 @@ describe("review state reducers", () => {
 
     expect(nextState.anomalyStates.anom_missing_working_hours).toEqual({
       status: "waiting_for_customer",
-      reviewedAt: "2026-05-18T08:05:00.000Z",
     });
   });
-});
 
+  it("caps audit events to the most recent 50 entries", () => {
+    const initialState = {
+      anomalyStates: {},
+      auditEvents: Array.from({ length: 50 }, (_, index) => ({
+        id: `audit_${index}`,
+        at: `2026-05-18T08:${String(index).padStart(2, "0")}:00.000Z`,
+        actor: "reviewer" as const,
+        action: "anomaly_marked_reviewed" as const,
+        targetId: "anom_missing_tax_card",
+        detail: `Event ${index}`,
+      })),
+    };
+
+    const nextState = reduceDemoReviewState(initialState, {
+      anomalyId: "anom_missing_tax_card",
+      nextStatus: "reviewed",
+      at: "2026-05-18T09:00:00.000Z",
+      auditEvent: {
+        id: createId("audit"),
+        at: "2026-05-18T09:00:00.000Z",
+        actor: "reviewer",
+        action: "anomaly_marked_reviewed",
+        targetId: "anom_missing_tax_card",
+        detail: "Marked as reviewed.",
+      },
+    });
+
+    expect(nextState.auditEvents).toHaveLength(50);
+    expect(nextState.auditEvents[0]?.id).toBe("audit_1");
+    expect(nextState.auditEvents[49]?.detail).toBe("Marked as reviewed.");
+  });
+});
