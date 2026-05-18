@@ -4,17 +4,26 @@ import { getOptionalDemoSession } from "@/lib/auth/require-demo-session";
 import { redirect } from "next/navigation";
 
 type AccessPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     token?: string | string[];
-  };
+  }>;
 };
 
-export default async function AccessPage({ searchParams }: AccessPageProps) {
-  const token = Array.isArray(searchParams?.token)
-    ? searchParams?.token[0]
-    : searchParams?.token;
+function isLikelyInviteToken(token: string) {
+  return /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/.test(token);
+}
 
-  if (token) {
+export default async function AccessPage({ searchParams }: AccessPageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const token = Array.isArray(resolvedSearchParams?.token)
+    ? resolvedSearchParams?.token[0]
+    : resolvedSearchParams?.token;
+
+  if (typeof token === "string") {
+    if (!isLikelyInviteToken(token)) {
+      redirect("/access/invalid");
+    }
+
     redirect(`/access/redeem?token=${encodeURIComponent(token)}`);
   }
 

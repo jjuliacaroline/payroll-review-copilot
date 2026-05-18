@@ -4,9 +4,13 @@ import { clearDemoSessionCookie, setDemoSessionCookie } from "@/lib/auth/session
 import { verifyDemoInviteToken } from "@/lib/auth/invite-token";
 import { createId } from "@/lib/utils/id";
 
+function isLikelyInviteToken(token: string) {
+  return /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/.test(token);
+}
+
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
-  if (!token) {
+  if (!token || !isLikelyInviteToken(token)) {
     return NextResponse.redirect(new URL("/access/invalid", request.url));
   }
 

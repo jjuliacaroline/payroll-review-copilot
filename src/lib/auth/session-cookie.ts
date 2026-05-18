@@ -2,8 +2,9 @@ import { cookies } from "next/headers";
 import type { NextResponse } from "next/server";
 import { DEMO_SESSION_COOKIE_NAME, getDemoAuthConfig } from "./auth-config";
 
-export function readDemoSessionCookie() {
-  return cookies().get(DEMO_SESSION_COOKIE_NAME)?.value ?? null;
+export async function readDemoSessionCookie() {
+  const cookieStore = await cookies();
+  return cookieStore.get(DEMO_SESSION_COOKIE_NAME)?.value ?? null;
 }
 
 export function setDemoSessionCookie(response: NextResponse, token: string) {

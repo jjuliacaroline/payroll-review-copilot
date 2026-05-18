@@ -4,7 +4,7 @@ import { verifyDemoSessionToken } from "./session-token";
 import type { DemoSessionPayload } from "./types";
 
 export async function getOptionalDemoSession(): Promise<DemoSessionPayload | null> {
-  const token = readDemoSessionCookie();
+  const token = await readDemoSessionCookie();
   if (!token) {
     return null;
   }

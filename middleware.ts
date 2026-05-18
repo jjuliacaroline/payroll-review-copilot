@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createDemoSessionToken, verifyDemoSessionToken } from "@/lib/auth/session-token";
-import {
-  clearDemoSessionCookie,
-  DEMO_SESSION_COOKIE_NAME,
-  setDemoSessionCookie,
-} from "@/lib/auth/session-cookie";
+import { clearDemoSessionCookie, setDemoSessionCookie } from "@/lib/auth/session-cookie";
+import { DEMO_SESSION_COOKIE_NAME } from "@/lib/auth/auth-config";
 import { verifyDemoInviteToken } from "@/lib/auth/invite-token";
 import { createId } from "@/lib/utils/id";
 
