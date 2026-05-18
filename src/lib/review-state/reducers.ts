@@ -1,11 +1,12 @@
 import { createId } from "@/lib/utils/id";
 import type { PayrollAnomaly } from "@/lib/domain/types";
 import type {
-  AuditEvent,
   DemoReviewAnomalyState,
   DemoReviewState,
   ReviewMutationAction,
 } from "./types";
+import type { IgnoreReasonCode } from "@/lib/audit/types";
+import type { AuditEvent } from "@/lib/audit/types";
 
 export function createInitialDemoReviewState(): DemoReviewState {
   return {
@@ -33,7 +34,7 @@ type ReduceDemoReviewStateInput = {
   nextStatus: DemoReviewAnomalyState["status"];
   at: string;
   auditEvent: AuditEvent;
-  ignoredReason?: string;
+  ignoredReason?: IgnoreReasonCode;
   messageDraftId?: string;
   customerMessageSentAt?: string;
 };

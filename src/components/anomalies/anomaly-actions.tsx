@@ -3,18 +3,41 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AnomalyStatus } from "@/lib/domain/types";
+import type { IgnoreReasonCode } from "@/lib/audit/types";
 import type { ReviewMutationAction } from "@/lib/review-state/types";
 
 type AnomalyActionsProps = {
   anomalyId: string;
   currentStatus: AnomalyStatus;
+  onOpenDetails?: () => void;
+  onOpenIgnore?: () => void;
 };
 
 function actionLabel(action: ReviewMutationAction) {
   return action === "mark_as_reviewed" ? "Mark as reviewed" : "Ask customer";
 }
 
-export default function AnomalyActions({ anomalyId, currentStatus }: AnomalyActionsProps) {
+async function submitReviewMutation(input: {
+  anomalyId: string;
+  action: ReviewMutationAction | "ignore_with_reason";
+  reasonCode?: IgnoreReasonCode;
+  note?: string;
+}) {
+  return fetch("/api/review", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+}
+
+export default function AnomalyActions({
+  anomalyId,
+  currentStatus,
+  onOpenDetails,
+  onOpenIgnore,
+}: AnomalyActionsProps) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -27,15 +50,9 @@ export default function AnomalyActions({ anomalyId, currentStatus }: AnomalyActi
     setErrorMessage(null);
 
     try {
-      const response = await fetch("/api/review", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          anomalyId,
-          action,
-        }),
+      const response = await submitReviewMutation({
+        anomalyId,
+        action,
       });
 
       if (!response.ok) {
@@ -70,16 +87,22 @@ export default function AnomalyActions({ anomalyId, currentStatus }: AnomalyActi
         >
           {isSaving && !askCustomerDisabled ? "Saving..." : actionLabel("ask_customer")}
         </button>
-      </div>
-      <div className="flex flex-wrap gap-2">
         <button
-          className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-400"
-          disabled
-          title="Available in Step 5"
+          className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
           type="button"
+          onClick={onOpenDetails}
         >
           Review details
         </button>
+        <button
+          className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
+          type="button"
+          onClick={onOpenIgnore}
+        >
+          Ignore with reason
+        </button>
+      </div>
+      <div className="flex flex-wrap gap-2">
         <button
           className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-400"
           disabled
@@ -88,17 +111,8 @@ export default function AnomalyActions({ anomalyId, currentStatus }: AnomalyActi
         >
           Generate customer message
         </button>
-        <button
-          className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-400"
-          disabled
-          title="Available in Step 5"
-          type="button"
-        >
-          Ignore with reason
-        </button>
       </div>
       {errorMessage ? <p className="text-sm text-rose-700">{errorMessage}</p> : null}
     </div>
   );
 }
-

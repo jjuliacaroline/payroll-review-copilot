@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import SeverityBadge from "./severity-badge";
 import AnomalyStatusBadge from "./anomaly-status-badge";
@@ -6,9 +8,11 @@ import type { AnomalyReviewCardViewModel } from "@/lib/review-state/selectors";
 
 type AnomalyCardProps = {
   card: AnomalyReviewCardViewModel;
+  onOpenDetails: (anomalyId: string) => void;
+  onOpenIgnore: (anomalyId: string) => void;
 };
 
-export default function AnomalyCard({ card }: AnomalyCardProps) {
+export default function AnomalyCard({ card, onOpenDetails, onOpenIgnore }: AnomalyCardProps) {
   const headingId = `anomaly-${card.anomaly.id}`;
 
   return (
@@ -59,10 +63,14 @@ export default function AnomalyCard({ card }: AnomalyCardProps) {
           ) : null}
         </div>
         <div className="shrink-0 lg:w-[320px]">
-          <AnomalyActions anomalyId={card.anomaly.id} currentStatus={card.status} />
+          <AnomalyActions
+            anomalyId={card.anomaly.id}
+            currentStatus={card.status}
+            onOpenDetails={() => onOpenDetails(card.anomaly.id)}
+            onOpenIgnore={() => onOpenIgnore(card.anomaly.id)}
+          />
         </div>
       </div>
     </article>
   );
 }
-

@@ -4,6 +4,7 @@ import { getDemoAuthConfig } from "@/lib/auth/auth-config";
 import { getOptionalDemoSession } from "@/lib/auth/require-demo-session";
 import { loadDemoReviewState, setDemoReviewStateCookie } from "@/lib/review-state/session-state";
 import { applyReviewMutation, ReviewMutationError } from "@/lib/review-state/actions";
+import type { IgnoreReasonCode } from "@/lib/audit/types";
 
 function isSameOrigin(request: NextRequest) {
   const origin = request.headers.get("origin");
@@ -26,6 +27,15 @@ function isSameOrigin(request: NextRequest) {
   }
 }
 
+function isIgnoreReasonCode(value: unknown): value is IgnoreReasonCode {
+  return (
+    value === "false_positive" ||
+    value === "already_resolved_outside_system" ||
+    value === "customer_confirmed_exception" ||
+    value === "not_relevant_for_this_run"
+  );
+}
+
 export async function POST(request: NextRequest) {
   if (!isSameOrigin(request)) {
     return NextResponse.json({ error: "invalid_origin" }, { status: 403 });
@@ -45,13 +55,20 @@ export async function POST(request: NextRequest) {
 
   const anomalyId = typeof body === "object" && body !== null && "anomalyId" in body ? body.anomalyId : "";
   const action = typeof body === "object" && body !== null && "action" in body ? body.action : "";
+  const reasonCode =
+    typeof body === "object" && body !== null && "reasonCode" in body ? body.reasonCode : undefined;
+  const note = typeof body === "object" && body !== null && "note" in body ? body.note : undefined;
 
   if (typeof anomalyId !== "string" || typeof action !== "string") {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
 
-  if (action !== "mark_as_reviewed" && action !== "ask_customer") {
+  if (action !== "mark_as_reviewed" && action !== "ask_customer" && action !== "open_detail" && action !== "ignore_with_reason") {
     return NextResponse.json({ error: "invalid_action" }, { status: 400 });
+  }
+
+  if (action === "ignore_with_reason" && !isIgnoreReasonCode(reasonCode)) {
+    return NextResponse.json({ error: "invalid_reason_code" }, { status: 400 });
   }
 
   try {
@@ -63,6 +80,8 @@ export async function POST(request: NextRequest) {
       request: {
         anomalyId,
         action,
+        reasonCode: isIgnoreReasonCode(reasonCode) ? reasonCode : undefined,
+        note: typeof note === "string" ? note : undefined,
       },
     });
 
@@ -76,7 +95,7 @@ export async function POST(request: NextRequest) {
           ? 401
           : error.code === "invalid_origin"
             ? 403
-            : error.code === "invalid_anomaly_id" || error.code === "invalid_action"
+            : error.code === "invalid_anomaly_id" || error.code === "invalid_action" || error.code === "invalid_reason_code"
               ? 400
               : 409;
 

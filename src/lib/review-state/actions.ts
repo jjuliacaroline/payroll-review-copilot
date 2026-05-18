@@ -1,5 +1,5 @@
 import type { PayrollAnomaly } from "@/lib/domain/types";
-import { reduceDemoReviewState, createReviewAuditEvent, getEffectiveAnomalyStatus } from "./reducers";
+import { reduceDemoReviewState, getEffectiveAnomalyStatus } from "./reducers";
 import type {
   DemoReviewState,
   ReviewMutationAction,
@@ -7,6 +7,14 @@ import type {
   ReviewMutationRequest,
   ReviewMutationSession,
 } from "./types";
+import {
+  createAnomalyIgnoredEvent,
+  createAnomalyOpenedEvent,
+  createAnomalyReviewedEvent,
+  createAnomalyWaitingForCustomerEvent,
+  sanitizeAuditNoteForStorage,
+} from "@/lib/audit/create-event";
+import type { IgnoreReasonCode } from "@/lib/audit/types";
 
 export class ReviewMutationError extends Error {
   code: ReviewMutationErrorCode;
@@ -20,19 +28,28 @@ export class ReviewMutationError extends Error {
 }
 
 function nextStatusForAction(action: ReviewMutationAction) {
-  return action === "mark_as_reviewed" ? "reviewed" : "waiting_for_customer";
-}
-
-function auditDetailForMutation(
-  session: ReviewMutationSession,
-  anomaly: PayrollAnomaly,
-  action: ReviewMutationAction,
-) {
   if (action === "mark_as_reviewed") {
-    return `${session.reviewerLabel} marked ${anomaly.title} as reviewed.`;
+    return "reviewed";
   }
 
-  return `${session.reviewerLabel} sent ${anomaly.title} back to the customer for confirmation.`;
+  if (action === "ask_customer") {
+    return "waiting_for_customer";
+  }
+
+  if (action === "ignore_with_reason") {
+    return "ignored";
+  }
+
+  return "open";
+}
+
+function isIgnoreReasonCode(value: unknown): value is IgnoreReasonCode {
+  return (
+    value === "false_positive" ||
+    value === "already_resolved_outside_system" ||
+    value === "customer_confirmed_exception" ||
+    value === "not_relevant_for_this_run"
+  );
 }
 
 export function applyReviewMutation(input: {
@@ -52,24 +69,57 @@ export function applyReviewMutation(input: {
     throw new ReviewMutationError("invalid_anomaly_id", "Anomaly id was not recognized.");
   }
 
+  if (request.action === "ignore_with_reason" && !isIgnoreReasonCode(request.reasonCode)) {
+    throw new ReviewMutationError("invalid_reason_code", "Ignore reason was not recognized.");
+  }
+
+  const at = (input.now ?? new Date()).toISOString();
+
+  if (request.action === "open_detail") {
+    const auditEvent = createAnomalyOpenedEvent({
+      anomaly,
+      reviewerLabel: session.reviewerLabel,
+      at,
+    });
+
+    return {
+      ...currentState,
+      auditEvents: [...currentState.auditEvents, auditEvent].slice(-50),
+    };
+  }
+
   const nextStatus = nextStatusForAction(request.action);
   const effectiveStatus = getEffectiveAnomalyStatus(anomaly, currentState);
   if (effectiveStatus === nextStatus) {
     throw new ReviewMutationError("forbidden_transition", "The anomaly is already in that state.");
   }
 
-  const at = (input.now ?? new Date()).toISOString();
-  const auditEvent = createReviewAuditEvent(
-    request.action,
-    anomaly.id,
-    auditDetailForMutation(session, anomaly, request.action),
-    at,
-  );
+  const auditEvent =
+    request.action === "mark_as_reviewed"
+      ? createAnomalyReviewedEvent({
+          anomaly,
+          reviewerLabel: session.reviewerLabel,
+          at,
+        })
+      : request.action === "ask_customer"
+        ? createAnomalyWaitingForCustomerEvent({
+            anomaly,
+            reviewerLabel: session.reviewerLabel,
+            at,
+          })
+        : createAnomalyIgnoredEvent({
+            anomaly,
+            reviewerLabel: session.reviewerLabel,
+            reasonCode: request.reasonCode as IgnoreReasonCode,
+            note: sanitizeAuditNoteForStorage(request.note),
+            at,
+          });
 
   return reduceDemoReviewState(currentState, {
     anomalyId: anomaly.id,
     nextStatus,
     at,
     auditEvent,
+    ignoredReason: request.action === "ignore_with_reason" ? request.reasonCode : undefined,
   });
 }

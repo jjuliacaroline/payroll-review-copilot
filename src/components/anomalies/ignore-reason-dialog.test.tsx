@@ -1,16 +1,12 @@
 import React from "react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import AnomalyCard from "./anomaly-card";
+import IgnoreReasonDialog from "./ignore-reason-dialog";
 
-vi.mock("./anomaly-actions", () => ({
-  default: () => <div data-testid="anomaly-actions">Actions</div>,
-}));
-
-describe("AnomalyCard", () => {
-  it("renders the core anomaly details and controls", () => {
+describe("IgnoreReasonDialog", () => {
+  it("renders reason choices and note input", () => {
     const html = renderToStaticMarkup(
-      <AnomalyCard
+      <IgnoreReasonDialog
         card={{
           anomaly: {
             id: "anom_missing_tax_card",
@@ -34,15 +30,17 @@ describe("AnomalyCard", () => {
           },
           status: "open",
         }}
-        onOpenDetails={() => undefined}
-        onOpenIgnore={() => undefined}
+        errorMessage={null}
+        isSaving={false}
+        open
+        onClose={() => undefined}
+        onSubmit={() => undefined}
       />,
     );
 
-    expect(html).toContain("Missing tax card data");
-    expect(html).toContain("Tiina Kallio");
-    expect(html).toContain("Evidence");
-    expect(html).toContain("Suggested next action");
-    expect(html).toContain("Actions");
+    expect(html).toContain("Ignore with reason");
+    expect(html).toContain("False positive");
+    expect(html).toContain("Optional note for the audit trail");
+    expect(html).toContain("Ignore anomaly");
   });
 });

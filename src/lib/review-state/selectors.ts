@@ -3,6 +3,7 @@ import type { EmployeeRecord, PayrollAnomaly, Severity } from "@/lib/domain/type
 import type { PayrollRunSummary } from "@/lib/payroll/summary";
 import { getEffectiveAnomalyState, getEffectiveAnomalyStatus } from "./reducers";
 import type { DemoReviewState } from "./types";
+import type { IgnoreReasonCode } from "@/lib/audit/types";
 
 const severityRank: Record<Severity, number> = {
   critical: 0,
@@ -24,7 +25,7 @@ export type AnomalyReviewCardViewModel = {
   employee: EmployeeRecord;
   status: PayrollAnomaly["status"];
   reviewedAt?: string;
-  ignoredReason?: string;
+  ignoredReason?: IgnoreReasonCode;
   messageDraftId?: string;
   customerMessageSentAt?: string;
 };

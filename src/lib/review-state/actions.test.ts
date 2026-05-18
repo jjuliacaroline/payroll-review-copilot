@@ -41,6 +41,42 @@ describe("review mutation actions", () => {
     expect(nextState.auditEvents[0]?.action).toBe("anomaly_waiting_for_customer");
   });
 
+  it("records opening a detail view without changing status", () => {
+    const nextState = applyReviewMutation({
+      session,
+      currentState: createInitialDemoReviewState(),
+      anomalies: demoAnomalies,
+      request: {
+        anomalyId: "anom_missing_tax_card",
+        action: "open_detail",
+      },
+      now: new Date("2026-05-18T08:13:00.000Z"),
+    });
+
+    expect(nextState.anomalyStates.anom_missing_tax_card).toBeUndefined();
+    expect(nextState.auditEvents[0]?.action).toBe("anomaly_opened");
+  });
+
+  it("updates an anomaly to ignored with a reason", () => {
+    const nextState = applyReviewMutation({
+      session,
+      currentState: createInitialDemoReviewState(),
+      anomalies: demoAnomalies,
+      request: {
+        anomalyId: "anom_missing_tax_card",
+        action: "ignore_with_reason",
+        reasonCode: "false_positive",
+        note: "Already cleared in the customer system.",
+      },
+      now: new Date("2026-05-18T08:14:00.000Z"),
+    });
+
+    expect(nextState.anomalyStates.anom_missing_tax_card?.status).toBe("ignored");
+    expect(nextState.anomalyStates.anom_missing_tax_card?.ignoredReason).toBe("false_positive");
+    expect(nextState.auditEvents[0]?.action).toBe("anomaly_ignored");
+    expect(nextState.auditEvents[0]?.meta?.reasonCode).toBe("false_positive");
+  });
+
   it("rejects invalid anomaly ids", () => {
     expect(() =>
       applyReviewMutation({
@@ -89,5 +125,20 @@ describe("review mutation actions", () => {
         },
       }),
     ).toThrowError("already in that state");
+  });
+
+  it("rejects invalid ignore reason codes", () => {
+    expect(() =>
+      applyReviewMutation({
+        session,
+        currentState: createInitialDemoReviewState(),
+        anomalies: demoAnomalies,
+        request: {
+          anomalyId: "anom_missing_tax_card",
+          action: "ignore_with_reason",
+          reasonCode: "unknown_reason" as never,
+        },
+      }),
+    ).toThrowError("Ignore reason was not recognized.");
   });
 });

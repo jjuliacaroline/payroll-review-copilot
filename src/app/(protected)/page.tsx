@@ -28,7 +28,7 @@ export default async function DashboardPage() {
         <ReviewGovernanceBanner />
       </PageSection>
       <PageSection>
-        <AnomalyList cards={anomalyCards} />
+        <AnomalyList cards={anomalyCards} auditEvents={reviewState.auditEvents} />
       </PageSection>
     </div>
   );

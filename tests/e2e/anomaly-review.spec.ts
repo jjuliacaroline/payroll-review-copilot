@@ -34,21 +34,53 @@ test.beforeEach(async ({ context }) => {
   await context.clearCookies();
 });
 
-test("updates an anomaly and persists the review state", async ({ page }) => {
+test("opens the detail drawer, records the action, and marks an anomaly reviewed", async ({ page }) => {
   await signInForPlaywright(page);
 
   await page.goto("/");
 
   const anomalyCard = page.getByRole("article", { name: /Missing working hours entry/ });
   await expect(anomalyCard).toBeVisible();
-  await expect(anomalyCard.getByRole("button", { name: "Mark as reviewed" })).toBeEnabled();
 
-  await anomalyCard.getByRole("button", { name: "Mark as reviewed" }).click();
+  await anomalyCard.getByRole("button", { name: "Review details" }).click();
+
+  const drawer = page.getByRole("dialog", { name: /Missing working hours entry details/ });
+  await expect(drawer).toBeVisible();
+  await expect(drawer.getByText("Action history")).toBeVisible();
+  await expect(drawer.getByText("Opened detail view")).toBeVisible();
+
+  await drawer.getByRole("button", { name: "Mark as reviewed" }).click();
 
   await expect(anomalyCard.getByText("Reviewed")).toBeVisible();
 
   await page.reload();
 
-  await expect(page.getByRole("article", { name: /Missing working hours entry/ }).getByText("Reviewed")).toBeVisible();
+  const refreshedCard = page.getByRole("article", { name: /Missing working hours entry/ });
+  await expect(refreshedCard.locator("span").filter({ hasText: /^Reviewed$/ })).toBeVisible();
+
+  await refreshedCard.getByRole("button", { name: "Review details" }).click();
+  await expect(page.getByRole("dialog", { name: /Missing working hours entry details/ }).getByText("Opened detail view")).toBeVisible();
 });
 
+test("ignores an anomaly with a reason", async ({ page }) => {
+  await signInForPlaywright(page);
+
+  await page.goto("/");
+
+  const anomalyCard = page.getByRole("article", { name: /Net salary changed sharply/ });
+  await expect(anomalyCard).toBeVisible();
+
+  await anomalyCard.getByRole("button", { name: "Ignore with reason" }).click();
+
+  const dialog = page.getByRole("dialog", { name: /Ignore with reason/ });
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel("False positive").click();
+  await dialog.getByRole("textbox").fill("Confirmed outside the payroll system.");
+  await dialog.getByRole("button", { name: "Ignore anomaly" }).click();
+
+  await expect(anomalyCard.getByText("Ignored")).toBeVisible();
+
+  await page.reload();
+
+  await expect(page.getByRole("article", { name: /Net salary changed sharply/ }).getByText("Ignored")).toBeVisible();
+});
