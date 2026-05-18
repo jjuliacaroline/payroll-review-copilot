@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { demoAnomalies } from "@/lib/demo-data";
+import { getDemoAuthConfig } from "@/lib/auth/auth-config";
 import { getOptionalDemoSession } from "@/lib/auth/require-demo-session";
 import { loadDemoReviewState, setDemoReviewStateCookie } from "@/lib/review-state/session-state";
 import { applyReviewMutation, ReviewMutationError } from "@/lib/review-state/actions";
@@ -7,29 +8,19 @@ import { applyReviewMutation, ReviewMutationError } from "@/lib/review-state/act
 function isSameOrigin(request: NextRequest) {
   const origin = request.headers.get("origin");
   if (!origin) {
-    return true;
+    return false;
   }
 
   try {
-    const requestOrigin = new URL(request.nextUrl.origin ?? request.url);
+    const config = getDemoAuthConfig();
+    if (!config.baseUrl) {
+      return false;
+    }
+
+    const trustedOrigin = new URL(config.baseUrl).origin;
     const headerOrigin = new URL(origin);
 
-    const isLocalAlias = (hostname: string) =>
-      hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
-
-    if (requestOrigin.protocol !== headerOrigin.protocol) {
-      return false;
-    }
-
-    if (requestOrigin.port !== headerOrigin.port) {
-      return false;
-    }
-
-    if (requestOrigin.hostname === headerOrigin.hostname) {
-      return true;
-    }
-
-    return isLocalAlias(requestOrigin.hostname) && isLocalAlias(headerOrigin.hostname);
+    return headerOrigin.origin === trustedOrigin;
   } catch {
     return false;
   }

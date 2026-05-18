@@ -29,6 +29,10 @@ export type AnomalyReviewCardViewModel = {
   customerMessageSentAt?: string;
 };
 
+type InternalAnomalyReviewCardViewModel = AnomalyReviewCardViewModel & {
+  sortIndex: number;
+};
+
 function countEffectiveCriticalIssues(
   anomalies: PayrollAnomaly[],
   reviewState: DemoReviewState,
@@ -65,15 +69,15 @@ export function selectAnomalyReviewCards(
 ): AnomalyReviewCardViewModel[] {
   const employeeById = new Map(employees.map((employee) => [employee.id, employee]));
 
-  return anomalies
-    .map((anomaly, index) => {
-      const employee = employeeById.get(anomaly.employeeId);
-      if (!employee) {
-        return null;
-      }
+  const cards: InternalAnomalyReviewCardViewModel[] = anomalies.flatMap((anomaly, index) => {
+    const employee = employeeById.get(anomaly.employeeId);
+    if (!employee) {
+      return [];
+    }
 
-      const effectiveState = getEffectiveAnomalyState(anomaly, reviewState);
-      return {
+    const effectiveState = getEffectiveAnomalyState(anomaly, reviewState);
+    return [
+      {
         anomaly: {
           ...anomaly,
           status: effectiveState.status,
@@ -85,9 +89,11 @@ export function selectAnomalyReviewCards(
         messageDraftId: effectiveState.messageDraftId,
         customerMessageSentAt: effectiveState.customerMessageSentAt,
         sortIndex: index,
-      };
-    })
-    .filter((card): card is AnomalyReviewCardViewModel & { sortIndex: number } => card !== null)
+      },
+    ];
+  });
+
+  return cards
     .sort((left, right) => {
       const severityDiff = severityRank[left.anomaly.severity] - severityRank[right.anomaly.severity];
       if (severityDiff !== 0) {
@@ -103,4 +109,3 @@ export function selectAnomalyReviewCards(
     })
     .map(({ sortIndex: _sortIndex, ...card }) => card);
 }
-
