@@ -11,7 +11,7 @@ export default defineConfig({
   webServer: {
     command: "npm run dev",
     url: "http://localhost:3000",
-    reuseExistingServer: true,
+    reuseExistingServer: false,
     env: {
       DEMO_INVITE_SECRET: "playwright-invite-secret",
       DEMO_SESSION_SECRET: "playwright-session-secret",
