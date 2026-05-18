@@ -31,7 +31,25 @@ test("logs in with a valid invite token", async ({ page }) => {
   await page.goto(url);
 
   await expect(page.getByText("Signed in as Playwright")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Payroll Review Copilot" })).toBeVisible();
+  // Dashboard now shows the company name as the primary heading
+  await expect(page.getByRole("heading", { name: "Demo Company Oy" })).toBeVisible();
+});
+
+test("shows dashboard shell and supports logout", async ({ page }) => {
+  const { token } = await createDemoInviteToken({
+    inviteId: "invite_playwright_shell",
+    reviewerLabel: "Playwright",
+  });
+  const url = buildDemoInviteUrl(token);
+
+  await page.goto(url);
+
+  await expect(page.getByRole("heading", { name: "Demo Company Oy" })).toBeVisible();
+  await expect(page.getByText("Review in progress")).toBeVisible();
+  await expect(page.getByText("Run highlights")).toBeVisible();
+
+  await page.getByRole("link", { name: "Log out" }).click();
+  await expect(page.getByRole("heading", { name: "You are now logged out" })).toBeVisible();
 });
 
 test("rejects malformed invite tokens", async ({ page }) => {
