@@ -63,7 +63,7 @@ test("shows dashboard shell and supports logout", async ({ page }) => {
   await expect(page.getByText("Review in progress")).toBeVisible();
   await expect(page.getByText("Run highlights")).toBeVisible();
   await expect(page.getByText("Detected anomalies")).toBeVisible();
-  await expect(page.getByText("Waiting for customer")).toBeVisible();
+  await expect(page.getByText("Waiting for customer", { exact: true }).first()).toBeVisible();
   expect(pageErrors).toEqual([]);
 
   await page.getByRole("link", { name: "Log out" }).click();

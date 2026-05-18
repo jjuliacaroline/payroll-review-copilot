@@ -5,12 +5,22 @@ import DashboardPage from "../page";
 import type { DemoSessionPayload } from "@/lib/auth/types";
 import { requireDemoSession } from "@/lib/auth/require-demo-session";
 import { payrollRunSummary } from "@/lib/payroll/summary";
+import { loadDemoReviewState } from "@/lib/review-state/session-state";
 
 vi.mock("@/lib/auth/require-demo-session", () => ({
   requireDemoSession: vi.fn(),
 }));
 
+vi.mock("@/lib/review-state/session-state", () => ({
+  loadDemoReviewState: vi.fn(),
+}));
+
+vi.mock("@/components/anomalies/anomaly-list", () => ({
+  default: () => <div>Mock anomaly list</div>,
+}));
+
 const mockRequireDemoSession = vi.mocked(requireDemoSession);
+const mockLoadDemoReviewState = vi.mocked(loadDemoReviewState);
 
 const session: DemoSessionPayload = {
   type: "demo_session",
@@ -24,10 +34,15 @@ const session: DemoSessionPayload = {
 describe("DashboardPage", () => {
   beforeEach(() => {
     mockRequireDemoSession.mockReset();
+    mockLoadDemoReviewState.mockReset();
   });
 
   it("renders the dashboard shell for authenticated users", async () => {
     mockRequireDemoSession.mockResolvedValue(session);
+    mockLoadDemoReviewState.mockResolvedValue({
+      anomalyStates: {},
+      auditEvents: [],
+    });
 
     const html = renderToStaticMarkup(await DashboardPage());
 
