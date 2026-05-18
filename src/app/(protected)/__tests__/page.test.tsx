@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import DashboardPage from "../page";
 import type { DemoSessionPayload } from "@/lib/auth/types";
 import { requireDemoSession } from "@/lib/auth/require-demo-session";
+import { payrollRunSummary } from "@/lib/payroll/summary";
 
 vi.mock("@/lib/auth/require-demo-session", () => ({
   requireDemoSession: vi.fn(),
@@ -32,6 +33,7 @@ describe("DashboardPage", () => {
 
     expect(html).toContain("Demo Company Oy");
     expect(html).toContain("Run highlights");
+    expect(html).toContain(String(payrollRunSummary.employeeCount));
   });
 
   it("redirects unauthenticated users", async () => {
