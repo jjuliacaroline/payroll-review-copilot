@@ -1,3 +1,6 @@
+import { demoAnomalies, demoEmployees, demoPayrollRun } from "@/lib/demo-data";
+import { selectPayrollRunSummary } from "@/lib/domain/selectors";
+
 export type PayrollRunStatus = "review_in_progress" | "ready_for_approval";
 
 export type PayrollRunSummary = {
@@ -12,14 +15,8 @@ export type PayrollRunSummary = {
   estimatedTimeSavedMinutes: number;
 };
 
-export const payrollRunSummary: PayrollRunSummary = {
-  companyName: "Demo Company Oy",
-  payrollPeriodLabel: "May 2026",
-  paymentDate: "2026-05-31",
-  employeeCount: 18,
-  status: "review_in_progress",
-  detectedAnomalies: 7,
-  criticalIssues: 2,
-  waitingForCustomerInput: 3,
-  estimatedTimeSavedMinutes: 420,
-};
+export const payrollRunSummary: PayrollRunSummary = selectPayrollRunSummary(
+  demoPayrollRun,
+  demoEmployees,
+  demoAnomalies,
+);
