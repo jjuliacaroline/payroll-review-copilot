@@ -50,11 +50,30 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
 
-  if (action !== "mark_as_reviewed" && action !== "ask_customer") {
+  if (
+    action !== "mark_as_reviewed" &&
+    action !== "ask_customer" &&
+    action !== "generate_customer_message" &&
+    action !== "mark_customer_message_sent"
+  ) {
     return NextResponse.json({ error: "invalid_action" }, { status: 400 });
   }
 
   try {
+    const payload = body as Record<string, unknown>;
+    const draftId =
+      "draftId" in payload && typeof payload.draftId === "string"
+        ? payload.draftId
+        : undefined;
+    const tone =
+      "tone" in payload && (payload.tone === "neutral" || payload.tone === "polite_urgent")
+        ? payload.tone
+        : undefined;
+    const generatedAt =
+      "generatedAt" in payload && typeof payload.generatedAt === "string"
+        ? payload.generatedAt
+        : undefined;
+
     const currentState = await loadDemoReviewState(session.sessionId);
     const nextState = applyReviewMutation({
       session,
@@ -63,6 +82,9 @@ export async function POST(request: NextRequest) {
       request: {
         anomalyId,
         action,
+        draftId,
+        tone,
+        generatedAt,
       },
     });
 

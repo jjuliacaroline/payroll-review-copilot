@@ -1,15 +1,17 @@
 import type { AnomalyStatus } from "@/lib/domain/types";
+import type { MessageTone } from "@/lib/messages/types";
 
 export type AuditEvent = {
   id: string;
   at: string;
   actor: "reviewer" | "system_ai";
   action:
-    | "anomaly_marked_reviewed"
-    | "anomaly_waiting_for_customer"
-    | "anomaly_ignored"
-    | "customer_message_generated"
-    | "customer_message_sent";
+  | "anomaly_marked_reviewed"
+  | "anomaly_waiting_for_customer"
+  | "anomaly_ignored"
+  | "customer_message_generated"
+  | "customer_message_tone_regenerated"
+  | "customer_message_sent";
   targetId: string;
   detail: string;
 };
@@ -19,6 +21,8 @@ export type DemoReviewAnomalyState = {
   reviewedAt?: string;
   ignoredReason?: string;
   messageDraftId?: string;
+  messageTone?: MessageTone;
+  customerMessageGeneratedAt?: string;
   customerMessageSentAt?: string;
 };
 
@@ -27,11 +31,18 @@ export type DemoReviewState = {
   auditEvents: AuditEvent[];
 };
 
-export type ReviewMutationAction = "mark_as_reviewed" | "ask_customer";
+export type ReviewMutationAction =
+  | "mark_as_reviewed"
+  | "ask_customer"
+  | "generate_customer_message"
+  | "mark_customer_message_sent";
 
 export type ReviewMutationRequest = {
   anomalyId: string;
   action: ReviewMutationAction;
+  draftId?: string;
+  tone?: MessageTone;
+  generatedAt?: string;
 };
 
 export type ReviewMutationErrorCode =
@@ -45,4 +56,3 @@ export type ReviewMutationSession = {
   reviewerLabel: string;
   sessionId: string;
 };
-

@@ -59,10 +59,9 @@ export default function AnomalyCard({ card }: AnomalyCardProps) {
           ) : null}
         </div>
         <div className="shrink-0 lg:w-[320px]">
-          <AnomalyActions anomalyId={card.anomaly.id} currentStatus={card.status} />
+          <AnomalyActions card={card} />
         </div>
       </div>
     </article>
   );
 }
-

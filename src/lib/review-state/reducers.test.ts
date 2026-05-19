@@ -52,6 +52,32 @@ describe("review state reducers", () => {
     });
   });
 
+  it("stores customer message draft metadata", () => {
+    const nextState = reduceDemoReviewState(createInitialDemoReviewState(), {
+      anomalyId: "anom_missing_working_hours",
+      nextStatus: "message_drafted",
+      at: "2026-05-18T08:15:00.000Z",
+      auditEvent: {
+        id: createId("audit"),
+        at: "2026-05-18T08:15:00.000Z",
+        actor: "reviewer",
+        action: "customer_message_generated",
+        targetId: "anom_missing_working_hours",
+        detail: "Generated a message draft.",
+      },
+      messageDraftId: "message_123",
+      messageTone: "neutral",
+      customerMessageGeneratedAt: "2026-05-18T08:15:00.000Z",
+    });
+
+    expect(nextState.anomalyStates.anom_missing_working_hours).toEqual({
+      status: "message_drafted",
+      messageDraftId: "message_123",
+      messageTone: "neutral",
+      customerMessageGeneratedAt: "2026-05-18T08:15:00.000Z",
+    });
+  });
+
   it("caps audit events to the most recent 50 entries", () => {
     const initialState = {
       anomalyStates: {},

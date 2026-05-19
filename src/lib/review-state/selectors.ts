@@ -26,6 +26,8 @@ export type AnomalyReviewCardViewModel = {
   reviewedAt?: string;
   ignoredReason?: string;
   messageDraftId?: string;
+  messageTone?: "neutral" | "polite_urgent";
+  customerMessageGeneratedAt?: string;
   customerMessageSentAt?: string;
 };
 
@@ -87,6 +89,8 @@ export function selectAnomalyReviewCards(
         reviewedAt: effectiveState.reviewedAt,
         ignoredReason: effectiveState.ignoredReason,
         messageDraftId: effectiveState.messageDraftId,
+        messageTone: effectiveState.messageTone,
+        customerMessageGeneratedAt: effectiveState.customerMessageGeneratedAt,
         customerMessageSentAt: effectiveState.customerMessageSentAt,
         sortIndex: index,
       },
