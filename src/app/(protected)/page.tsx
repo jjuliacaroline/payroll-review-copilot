@@ -10,14 +10,15 @@ import PayrollAssistantPanel from "@/components/assistant/payroll-assistant-pane
 import { demoAnomalies, demoAuditSeedEntries, demoEmployees } from "@/lib/demo-data";
 import { loadDemoReviewState } from "@/lib/review-state/session-state";
 import { selectAnomalyReviewCards, selectLivePayrollRunSummary } from "@/lib/review-state/selectors";
-import { mergeAuditEvents } from "@/lib/audit/create-event";
+import { selectAuditTimeline } from "@/lib/audit/selectors";
+import AuditLog from "@/components/audit/audit-log";
 
 export default async function DashboardPage() {
   const session = await requireDemoSession();
   const reviewState = await loadDemoReviewState(session.sessionId);
   const liveSummary = selectLivePayrollRunSummary(payrollRunSummary, demoAnomalies, reviewState);
   const anomalyCards = selectAnomalyReviewCards(demoAnomalies, demoEmployees, reviewState);
-  const auditEvents = mergeAuditEvents(demoAuditSeedEntries, reviewState.auditEvents);
+  const auditEvents = selectAuditTimeline(demoAuditSeedEntries, reviewState.auditEvents);
 
   return (
     <div className="space-y-6">
@@ -35,6 +36,9 @@ export default async function DashboardPage() {
           <AnomalyList cards={anomalyCards} auditEvents={auditEvents} />
           <PayrollAssistantPanel summary={liveSummary} cards={anomalyCards} />
         </div>
+      </PageSection>
+      <PageSection>
+        <AuditLog events={auditEvents} />
       </PageSection>
     </div>
   );
