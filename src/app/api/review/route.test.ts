@@ -131,4 +131,30 @@ describe("review route", () => {
 
     expect(response.status).toBe(200);
   });
+
+  it("accepts ignore-with-reason mutations", async () => {
+    mockGetOptionalDemoSession.mockResolvedValue({
+      type: "demo_session",
+      sessionId: "session_123",
+      reviewerLabel: "Reviewer",
+      role: "reviewer",
+      issuedAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    });
+    mockLoadDemoReviewState.mockResolvedValue({
+      anomalyStates: {},
+      auditEvents: [],
+    });
+
+    const request = makeRequest("http://127.0.0.1:3001", {
+      anomalyId: "anom_missing_tax_card",
+      action: "ignore_with_reason",
+      reason: "false_positive",
+      note: "Duplicate change already applied.",
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+  });
 });

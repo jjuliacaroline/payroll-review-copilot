@@ -3,12 +3,14 @@ import SeverityBadge from "./severity-badge";
 import AnomalyStatusBadge from "./anomaly-status-badge";
 import AnomalyActions from "./anomaly-actions";
 import type { AnomalyReviewCardViewModel } from "@/lib/review-state/selectors";
+import type { AuditEvent } from "@/lib/audit/types";
 
 type AnomalyCardProps = {
   card: AnomalyReviewCardViewModel;
+  auditEvents: AuditEvent[];
 };
 
-export default function AnomalyCard({ card }: AnomalyCardProps) {
+export default function AnomalyCard({ card, auditEvents }: AnomalyCardProps) {
   const headingId = `anomaly-${card.anomaly.id}`;
 
   return (
@@ -59,7 +61,7 @@ export default function AnomalyCard({ card }: AnomalyCardProps) {
           ) : null}
         </div>
         <div className="shrink-0 lg:w-[320px]">
-          <AnomalyActions card={card} />
+          <AnomalyActions card={card} auditEvents={auditEvents} />
         </div>
       </div>
     </article>

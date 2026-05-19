@@ -10,9 +10,13 @@ import { isMessageableAnomalyType } from "@/lib/messages/types";
 import { createId } from "@/lib/utils/id";
 import MessageDraftModal from "@/components/messages/message-draft-modal";
 import type { ReviewMutationAction } from "@/lib/review-state/types";
+import type { AuditEvent, IgnoreReasonCode } from "@/lib/audit/types";
+import AnomalyDetailDrawer from "./anomaly-detail-drawer";
+import IgnoreReasonDialog from "./ignore-reason-dialog";
 
 type AnomalyActionsProps = {
   card: AnomalyReviewCardViewModel;
+  auditEvents: AuditEvent[];
 };
 
 function actionLabel(action: ReviewMutationAction) {
@@ -36,15 +40,18 @@ async function writeTextToClipboard(text: string) {
   document.body.removeChild(textarea);
 }
 
-export default function AnomalyActions({ card }: AnomalyActionsProps) {
+export default function AnomalyActions({ card, auditEvents }: AnomalyActionsProps) {
   const router = useRouter();
   const [isSavingReview, setIsSavingReview] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [isGeneratingMessage, setIsGeneratingMessage] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [ignoreErrorMessage, setIgnoreErrorMessage] = useState<string | null>(null);
   const [copyConfirmation, setCopyConfirmation] = useState<string | null>(null);
   const [draft, setDraft] = useState<CustomerMessageDraft | null>(null);
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isIgnoreDialogOpen, setIsIgnoreDialogOpen] = useState(false);
   const copyTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -63,6 +70,9 @@ export default function AnomalyActions({ card }: AnomalyActionsProps) {
     canUseMessageFlow && currentStatus !== "reviewed" && currentStatus !== "ignored";
   const draftTone: MessageTone = draft?.tone ?? card.messageTone ?? "neutral";
   const improveToneLabel = draftTone === "neutral" ? "Improve tone" : "Make tone neutral";
+  const ignoreDisabled =
+    isSavingReview || currentStatus === "reviewed" || currentStatus === "ignored" || currentStatus === "message_sent";
+  const anomalyAuditEvents = auditEvents.filter((event) => event.targetId === card.anomaly.id);
 
   async function submit(action: ReviewMutationAction) {
     setIsSavingReview(true);
@@ -213,6 +223,39 @@ export default function AnomalyActions({ card }: AnomalyActionsProps) {
     }
   }
 
+  async function handleIgnore(reason: IgnoreReasonCode, note?: string) {
+    setIsSavingReview(true);
+    setIgnoreErrorMessage(null);
+
+    try {
+      const response = await fetch("/api/review", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          anomalyId: card.anomaly.id,
+          action: "ignore_with_reason",
+          reason,
+          note,
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(payload?.error ?? "review_update_failed");
+      }
+
+      setIsIgnoreDialogOpen(false);
+      setIsDetailOpen(false);
+      router.refresh();
+    } catch {
+      setIgnoreErrorMessage("Unable to ignore this anomaly right now.");
+    } finally {
+      setIsSavingReview(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap gap-2">
@@ -235,10 +278,9 @@ export default function AnomalyActions({ card }: AnomalyActionsProps) {
       </div>
       <div className="flex flex-wrap gap-2">
         <button
-          className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-400"
-          disabled
-          title="Available in Step 5"
+          className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
           type="button"
+          onClick={() => setIsDetailOpen(true)}
         >
           Review details
         </button>
@@ -252,10 +294,13 @@ export default function AnomalyActions({ card }: AnomalyActionsProps) {
           {isGeneratingMessage && isMessageModalOpen ? "Generating..." : "Generate customer message"}
         </button>
         <button
-          className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-400"
-          disabled
-          title="Available in Step 5"
+          className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+          disabled={ignoreDisabled}
           type="button"
+          onClick={() => {
+            setIgnoreErrorMessage(null);
+            setIsIgnoreDialogOpen(true);
+          }}
         >
           Ignore with reason
         </button>
@@ -270,7 +315,7 @@ export default function AnomalyActions({ card }: AnomalyActionsProps) {
         isSending={isSendingMessage}
         improveToneLabel={improveToneLabel}
         canCopy={Boolean(draft)}
-        canSend={Boolean(draft)}
+        canSend={Boolean(draft) && !isGeneratingMessage}
         onClose={() => {
           setIsMessageModalOpen(false);
           setErrorMessage(null);
@@ -278,6 +323,26 @@ export default function AnomalyActions({ card }: AnomalyActionsProps) {
         onCopy={handleCopy}
         onImproveTone={handleImproveTone}
         onMarkAsSent={handleMarkAsSent}
+      />
+      <AnomalyDetailDrawer
+        open={isDetailOpen}
+        card={card}
+        auditEvents={anomalyAuditEvents}
+        isSaving={isSavingReview}
+        onClose={() => setIsDetailOpen(false)}
+        onMarkReviewed={() => submit("mark_as_reviewed")}
+        onAskCustomer={() => submit("ask_customer")}
+        onOpenIgnoreDialog={() => {
+          setIgnoreErrorMessage(null);
+          setIsIgnoreDialogOpen(true);
+        }}
+      />
+      <IgnoreReasonDialog
+        open={isIgnoreDialogOpen}
+        isSubmitting={isSavingReview}
+        errorMessage={ignoreErrorMessage}
+        onClose={() => setIsIgnoreDialogOpen(false)}
+        onSubmit={handleIgnore}
       />
     </div>
   );

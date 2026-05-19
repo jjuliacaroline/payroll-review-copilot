@@ -1,12 +1,14 @@
 import React from "react";
 import AnomalyCard from "./anomaly-card";
 import type { AnomalyReviewCardViewModel } from "@/lib/review-state/selectors";
+import type { AuditEvent } from "@/lib/audit/types";
 
 type AnomalyListProps = {
   cards: AnomalyReviewCardViewModel[];
+  auditEvents: AuditEvent[];
 };
 
-export default function AnomalyList({ cards }: AnomalyListProps) {
+export default function AnomalyList({ cards, auditEvents }: AnomalyListProps) {
   return (
     <section>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -20,7 +22,7 @@ export default function AnomalyList({ cards }: AnomalyListProps) {
       </div>
       <div className="mt-6 grid gap-4">
         {cards.map((card) => (
-          <AnomalyCard key={card.anomaly.id} card={card} />
+          <AnomalyCard key={card.anomaly.id} card={card} auditEvents={auditEvents} />
         ))}
       </div>
     </section>

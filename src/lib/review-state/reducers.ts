@@ -1,5 +1,6 @@
 import { createId } from "@/lib/utils/id";
 import type { PayrollAnomaly } from "@/lib/domain/types";
+import type { IgnoreReasonCode } from "@/lib/audit/types";
 import type {
   AuditEvent,
   DemoReviewAnomalyState,
@@ -33,7 +34,7 @@ type ReduceDemoReviewStateInput = {
   nextStatus: DemoReviewAnomalyState["status"];
   at: string;
   auditEvent: AuditEvent;
-  ignoredReason?: string;
+  ignoredReason?: IgnoreReasonCode;
   messageDraftId?: string | null;
   messageTone?: DemoReviewAnomalyState["messageTone"] | null;
   customerMessageGeneratedAt?: string | null;

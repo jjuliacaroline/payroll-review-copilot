@@ -34,6 +34,7 @@ describe("AnomalyCard", () => {
           },
           status: "open",
         }}
+        auditEvents={[]}
       />,
     );
 

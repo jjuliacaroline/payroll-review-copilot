@@ -1,4 +1,6 @@
 import type { PayrollAnomaly } from "@/lib/domain/types";
+import type { IgnoreReasonCode } from "@/lib/audit/types";
+import { getIgnoreReasonLabel, isIgnoreReasonCode } from "@/lib/audit/labels";
 import { reduceDemoReviewState, createReviewAuditEvent, getEffectiveAnomalyStatus } from "./reducers";
 import type {
   DemoReviewState,
@@ -28,6 +30,10 @@ function nextStatusForAction(action: ReviewMutationAction) {
     return "message_drafted";
   }
 
+  if (action === "ignore_with_reason") {
+    return "ignored";
+  }
+
   return "waiting_for_customer";
 }
 
@@ -36,6 +42,8 @@ function auditDetailForMutation(
   anomaly: PayrollAnomaly,
   action: ReviewMutationAction,
   tone?: "neutral" | "polite_urgent",
+  reason?: IgnoreReasonCode,
+  note?: string,
 ) {
   if (action === "mark_as_reviewed") {
     return `${session.reviewerLabel} marked ${anomaly.title} as reviewed.`;
@@ -48,6 +56,12 @@ function auditDetailForMutation(
   if (action === "generate_customer_message") {
     const toneLabel = tone === "polite_urgent" ? "polite urgent" : "neutral";
     return `${session.reviewerLabel} generated a ${toneLabel} customer message for ${anomaly.title}.`;
+  }
+
+  if (action === "ignore_with_reason") {
+    const reasonLabel = reason ? getIgnoreReasonLabel(reason) : "Unknown reason";
+    const noteSuffix = note ? ` Note: ${note}` : "";
+    return `${session.reviewerLabel} ignored ${anomaly.title}. Reason: ${reasonLabel}.${noteSuffix}`;
   }
 
   return `${session.reviewerLabel} marked the customer message for ${anomaly.title} as sent.`;
@@ -83,6 +97,16 @@ export function applyReviewMutation(input: {
     throw new ReviewMutationError("forbidden_transition", "The anomaly is already in that state.");
   }
 
+  if (request.action === "ignore_with_reason") {
+    if (!request.reason || !isIgnoreReasonCode(request.reason)) {
+      throw new ReviewMutationError("invalid_ignore_reason", "Ignore reason is required.");
+    }
+
+    if (request.note && request.note.length > 240) {
+      throw new ReviewMutationError("invalid_note", "Ignore note is too long.");
+    }
+  }
+
   const at = (input.now ?? new Date()).toISOString();
   const auditAction =
     request.action === "generate_customer_message" &&
@@ -92,6 +116,8 @@ export function applyReviewMutation(input: {
         ? "customer_message_generated"
         : request.action === "mark_customer_message_sent"
           ? "customer_message_sent"
+          : request.action === "ignore_with_reason"
+            ? "anomaly_ignored"
           : request.action === "mark_as_reviewed"
             ? "anomaly_marked_reviewed"
             : "anomaly_waiting_for_customer";
@@ -102,7 +128,7 @@ export function applyReviewMutation(input: {
     actor: "reviewer" as const,
     action: auditAction,
     targetId: anomaly.id,
-    detail: auditDetailForMutation(session, anomaly, request.action, request.tone),
+    detail: auditDetailForMutation(session, anomaly, request.action, request.tone, request.reason, request.note),
   };
 
   if (request.action === "generate_customer_message") {
@@ -115,6 +141,16 @@ export function applyReviewMutation(input: {
       messageTone: request.tone ?? null,
       customerMessageGeneratedAt: request.generatedAt ?? at,
       customerMessageSentAt: null,
+    });
+  }
+
+  if (request.action === "ignore_with_reason") {
+    return reduceDemoReviewState(currentState, {
+      anomalyId: anomaly.id,
+      nextStatus,
+      at,
+      auditEvent,
+      ignoredReason: request.reason,
     });
   }
 

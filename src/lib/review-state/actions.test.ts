@@ -41,6 +41,25 @@ describe("review mutation actions", () => {
     expect(nextState.auditEvents[0]?.action).toBe("anomaly_waiting_for_customer");
   });
 
+  it("updates an anomaly to ignored with a reason", () => {
+    const nextState = applyReviewMutation({
+      session,
+      currentState: createInitialDemoReviewState(),
+      anomalies: demoAnomalies,
+      request: {
+        anomalyId: "anom_missing_tax_card",
+        action: "ignore_with_reason",
+        reason: "false_positive",
+        note: "Duplicate payroll correction already applied.",
+      },
+      now: new Date("2026-05-18T08:13:00.000Z"),
+    });
+
+    expect(nextState.anomalyStates.anom_missing_tax_card?.status).toBe("ignored");
+    expect(nextState.anomalyStates.anom_missing_tax_card?.ignoredReason).toBe("false_positive");
+    expect(nextState.auditEvents[0]?.action).toBe("anomaly_ignored");
+  });
+
   it("records a generated customer message draft", () => {
     const nextState = applyReviewMutation({
       session,
