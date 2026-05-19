@@ -1,61 +1,67 @@
 # Payroll Review Copilot
 
-A small Next.js app that demonstrates payroll anomaly review flows, demo auth, a readiness checklist, and automated tests.
+Payroll Review Copilot is a Next.js demo for reviewing payroll anomalies with a human-in-the-loop workflow, signed demo invites, and synthetic data.
 
-## Quick Start
+## What This Demo Is
 
-- **Prerequisites:** Node.js 18+ and npm (or compatible package manager).
-- **Install:**
+This prototype shows how a reviewer can inspect payroll exceptions, review supporting context, draft customer follow-up messages, track audit history, and assess whether a payroll run is ready for approval.
+
+## Main Demo Flows
+
+- Open a signed demo invite and enter the app.
+- Review synthetic payroll anomalies and supporting context.
+- Use the checklist and review UI to make a decision.
+- Run the automated test suite to verify core flows.
+
+## Tech Stack
+
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+- Vitest
+- Playwright
+- `jose` for signed invite/session handling
+
+## Local Setup
+
+Prerequisites: Node.js 18+ and npm.
 
 ```bash
 npm install
-```
-
-- **Run (development):**
-
-```bash
 npm run dev
 ```
 
-- **Build & Start (production):**
+Production:
 
 ```bash
 npm run build
 npm run start
 ```
 
-## Useful Scripts
+## Environment Variables
 
-- **`npm run dev`**: Start the Next.js dev server.
-- **`npm run build`**: Build the production app.
-- **`npm run start`**: Start the production server (after `build`).
-- **`npm run generate:demo-invite`**: Run the demo invite generator script (scripts/generate-demo-invite.ts).
-- **`npm test`**: Run unit tests with Vitest.
-- **`npm run test:e2e`**: Run end-to-end tests with Playwright.
+Copy `.env.example` to `.env.local` and set:
+
+- `DEMO_INVITE_SECRET`
+- `DEMO_SESSION_SECRET`
+- `DEMO_BASE_URL`
+- `DEMO_INVITE_MAX_AGE_HOURS`
+- `DEMO_SESSION_MAX_AGE_HOURS`
+
+## Private Demo Invite Link
+
+Use `npm run generate:demo-invite` to create a signed invite link for private sharing. Invite links are signed and expiring, so there is no need for shared passwords or a permanent public admin URL.
 
 ## Testing
 
-- Unit tests: Vitest is configured — run `npm test` to execute all tests under the codebase (see `src/**/__tests__`).
-- E2E tests: Playwright tests live under `tests/e2e/`. Use `npm run test:e2e` to run the suite. Playwright may need browsers installed on first run; the Playwright runner will prompt or install as needed.
+- `npm test` for unit tests
+- `npm run test:e2e` for Playwright end-to-end tests
 
-## Project Structure (high level)
+## Security / Data Note
 
-- `src/app/` — Next.js app routes and pages.
-- `src/components/` — UI components and their tests.
-- `src/lib/` — Utilities, demo data, auth helpers, and application logic.
-- `tests/` — end-to-end Playwright tests.
+All data in this demo is synthetic. Keep invite and session secrets out of source control, and share access only through signed invite links that expire.
 
-## Environment & Secrets
+See [docs/demo-handoff.md](docs/demo-handoff.md) for the longer demo handoff notes.
 
-This repository is configured for local development and demo usage. Do not commit secrets or production credentials. If you need to supply environment variables, create a `.env.local` file and add variables there; ensure `.gitignore` contains `.env.local` in your environment.
-
-## Development Notes
-
-- The app is built with Next.js (app directory), TypeScript, TailwindCSS, Vitest, and Playwright.
-- If you add new tests, prefer colocating unit tests alongside components in `__tests__` directories.
-- Run `npm run generate:demo-invite` to produce demo invites used by the demo-auth flows.
-
-## Troubleshooting
-
-- Missing types or build failure: run `npm install` and ensure your Node.js version matches the engine used locally.
-- Playwright/browser issues: run `npx playwright install` to install browsers.
+This is an independent portfolio prototype. It is not affiliated with, endorsed by, or connected to any real payroll, accounting, or financial software provider. All data is synthetic and used only for demonstration purposes.
