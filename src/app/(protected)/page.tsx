@@ -6,15 +6,17 @@ import ReviewGovernanceBanner from "@/components/dashboard/review-governance-ban
 import PageSection from "@/components/layout/page-section";
 import { payrollRunSummary } from "@/lib/payroll/summary";
 import AnomalyList from "@/components/anomalies/anomaly-list";
-import { demoAnomalies, demoEmployees } from "@/lib/demo-data";
+import { demoAnomalies, demoAuditSeedEntries, demoEmployees } from "@/lib/demo-data";
 import { loadDemoReviewState } from "@/lib/review-state/session-state";
 import { selectAnomalyReviewCards, selectLivePayrollRunSummary } from "@/lib/review-state/selectors";
+import { mergeAuditEvents } from "@/lib/audit/create-event";
 
 export default async function DashboardPage() {
   const session = await requireDemoSession();
   const reviewState = await loadDemoReviewState(session.sessionId);
   const liveSummary = selectLivePayrollRunSummary(payrollRunSummary, demoAnomalies, reviewState);
   const anomalyCards = selectAnomalyReviewCards(demoAnomalies, demoEmployees, reviewState);
+  const auditEvents = mergeAuditEvents(demoAuditSeedEntries, reviewState.auditEvents);
 
   return (
     <div className="space-y-6">
@@ -28,7 +30,7 @@ export default async function DashboardPage() {
         <ReviewGovernanceBanner />
       </PageSection>
       <PageSection>
-        <AnomalyList cards={anomalyCards} />
+        <AnomalyList cards={anomalyCards} auditEvents={auditEvents} />
       </PageSection>
     </div>
   );

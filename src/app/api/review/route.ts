@@ -4,6 +4,7 @@ import { getDemoAuthConfig } from "@/lib/auth/auth-config";
 import { getOptionalDemoSession } from "@/lib/auth/require-demo-session";
 import { loadDemoReviewState, setDemoReviewStateCookie } from "@/lib/review-state/session-state";
 import { applyReviewMutation, ReviewMutationError } from "@/lib/review-state/actions";
+import { isIgnoreReasonCode } from "@/lib/audit/labels";
 
 function isSameOrigin(request: NextRequest) {
   const origin = request.headers.get("origin");
@@ -50,11 +51,44 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
 
-  if (action !== "mark_as_reviewed" && action !== "ask_customer") {
+  if (
+    action !== "mark_as_reviewed" &&
+    action !== "ask_customer" &&
+    action !== "generate_customer_message" &&
+    action !== "mark_customer_message_sent" &&
+    action !== "ignore_with_reason"
+  ) {
     return NextResponse.json({ error: "invalid_action" }, { status: 400 });
   }
 
   try {
+    const payload = body as Record<string, unknown>;
+    const draftId =
+      "draftId" in payload && typeof payload.draftId === "string"
+        ? payload.draftId
+        : undefined;
+    const tone =
+      "tone" in payload && (payload.tone === "neutral" || payload.tone === "polite_urgent")
+        ? payload.tone
+        : undefined;
+    const generatedAt =
+      "generatedAt" in payload && typeof payload.generatedAt === "string"
+        ? payload.generatedAt
+        : undefined;
+    const reason =
+      "reason" in payload && typeof payload.reason === "string" ? payload.reason : undefined;
+    const note = "note" in payload && typeof payload.note === "string" ? payload.note : undefined;
+
+    if (action === "ignore_with_reason") {
+      if (!reason || !isIgnoreReasonCode(reason)) {
+        return NextResponse.json({ error: "invalid_ignore_reason" }, { status: 400 });
+      }
+
+      if (note && note.length > 240) {
+        return NextResponse.json({ error: "invalid_note" }, { status: 400 });
+      }
+    }
+
     const currentState = await loadDemoReviewState(session.sessionId);
     const nextState = applyReviewMutation({
       session,
@@ -63,6 +97,11 @@ export async function POST(request: NextRequest) {
       request: {
         anomalyId,
         action,
+        draftId,
+        tone,
+        generatedAt,
+        reason: action === "ignore_with_reason" && reason ? reason : undefined,
+        note: action === "ignore_with_reason" && note ? note : undefined,
       },
     });
 
@@ -76,7 +115,10 @@ export async function POST(request: NextRequest) {
           ? 401
           : error.code === "invalid_origin"
             ? 403
-            : error.code === "invalid_anomaly_id" || error.code === "invalid_action"
+            : error.code === "invalid_anomaly_id" ||
+                error.code === "invalid_action" ||
+                error.code === "invalid_ignore_reason" ||
+                error.code === "invalid_note"
               ? 400
               : 409;
 

@@ -1,5 +1,6 @@
 import { createId } from "@/lib/utils/id";
 import type { PayrollAnomaly } from "@/lib/domain/types";
+import type { IgnoreReasonCode } from "@/lib/audit/types";
 import type {
   AuditEvent,
   DemoReviewAnomalyState,
@@ -33,9 +34,11 @@ type ReduceDemoReviewStateInput = {
   nextStatus: DemoReviewAnomalyState["status"];
   at: string;
   auditEvent: AuditEvent;
-  ignoredReason?: string;
-  messageDraftId?: string;
-  customerMessageSentAt?: string;
+  ignoredReason?: IgnoreReasonCode;
+  messageDraftId?: string | null;
+  messageTone?: DemoReviewAnomalyState["messageTone"] | null;
+  customerMessageGeneratedAt?: string | null;
+  customerMessageSentAt?: string | null;
 };
 
 export function reduceDemoReviewState(
@@ -56,10 +59,26 @@ export function reduceDemoReviewState(
 
   if (input.messageDraftId) {
     nextState.messageDraftId = input.messageDraftId;
+  } else if (input.messageDraftId === null) {
+    delete nextState.messageDraftId;
+  }
+
+  if (input.messageTone) {
+    nextState.messageTone = input.messageTone;
+  } else if (input.messageTone === null) {
+    delete nextState.messageTone;
+  }
+
+  if (input.customerMessageGeneratedAt) {
+    nextState.customerMessageGeneratedAt = input.customerMessageGeneratedAt;
+  } else if (input.customerMessageGeneratedAt === null) {
+    delete nextState.customerMessageGeneratedAt;
   }
 
   if (input.customerMessageSentAt) {
     nextState.customerMessageSentAt = input.customerMessageSentAt;
+  } else if (input.customerMessageSentAt === null) {
+    delete nextState.customerMessageSentAt;
   }
 
   return {
@@ -84,7 +103,11 @@ export function createReviewAuditEvent(
     action:
       action === "mark_as_reviewed"
         ? "anomaly_marked_reviewed"
-        : "anomaly_waiting_for_customer",
+        : action === "ask_customer"
+          ? "anomaly_waiting_for_customer"
+          : action === "generate_customer_message"
+            ? "customer_message_generated"
+            : "customer_message_sent",
     targetId: anomalyId,
     detail,
   };

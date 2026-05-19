@@ -14,6 +14,7 @@ Architecture defaults:
 - Deployment target: Vercel
 - Primary UI language: English
 - Finnish content: payroll terminology where appropriate and customer message drafts
+- update README.md when needed
 
 ---
 
