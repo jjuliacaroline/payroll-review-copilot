@@ -49,6 +49,7 @@ describe("DashboardPage", () => {
     expect(html).toContain("Demo Company Oy");
     expect(html).toContain("Run highlights");
     expect(html).toContain(String(payrollRunSummary.employeeCount));
+    expect(html).toContain("Audit timeline");
   });
 
   it("redirects unauthenticated users", async () => {

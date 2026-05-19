@@ -1,4 +1,5 @@
 import { createId } from "@/lib/utils/id";
+import { appendAuditEvent } from "@/lib/audit/append-event";
 import type { PayrollAnomaly } from "@/lib/domain/types";
 import type { IgnoreReasonCode } from "@/lib/audit/types";
 import type {
@@ -86,7 +87,7 @@ export function reduceDemoReviewState(
       ...reviewState.anomalyStates,
       [input.anomalyId]: nextState,
     },
-    auditEvents: [...reviewState.auditEvents, input.auditEvent].slice(-50),
+    auditEvents: appendAuditEvent(reviewState.auditEvents, input.auditEvent),
   };
 }
 
