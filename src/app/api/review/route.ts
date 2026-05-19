@@ -5,6 +5,7 @@ import { getOptionalDemoSession } from "@/lib/auth/require-demo-session";
 import { loadDemoReviewState, setDemoReviewStateCookie } from "@/lib/review-state/session-state";
 import { applyReviewMutation, ReviewMutationError } from "@/lib/review-state/actions";
 import { isIgnoreReasonCode } from "@/lib/audit/labels";
+import type { IgnoreReasonCode } from "@/lib/audit/types";
 
 function isSameOrigin(request: NextRequest) {
   const origin = request.headers.get("origin");
@@ -78,9 +79,13 @@ export async function POST(request: NextRequest) {
     const reason =
       "reason" in payload && typeof payload.reason === "string" ? payload.reason : undefined;
     const note = "note" in payload && typeof payload.note === "string" ? payload.note : undefined;
+    const reasonCode: IgnoreReasonCode | undefined =
+      action === "ignore_with_reason" && reason && isIgnoreReasonCode(reason)
+        ? reason
+        : undefined;
 
     if (action === "ignore_with_reason") {
-      if (!reason || !isIgnoreReasonCode(reason)) {
+      if (!reasonCode) {
         return NextResponse.json({ error: "invalid_ignore_reason" }, { status: 400 });
       }
 
@@ -100,7 +105,7 @@ export async function POST(request: NextRequest) {
         draftId,
         tone,
         generatedAt,
-        reason: action === "ignore_with_reason" && reason ? reason : undefined,
+        reason: reasonCode,
         note: action === "ignore_with_reason" && note ? note : undefined,
       },
     });

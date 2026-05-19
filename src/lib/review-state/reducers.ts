@@ -2,8 +2,8 @@ import { createId } from "@/lib/utils/id";
 import { appendAuditEvent } from "@/lib/audit/append-event";
 import type { PayrollAnomaly } from "@/lib/domain/types";
 import type { IgnoreReasonCode } from "@/lib/audit/types";
+import type { AuditEvent } from "@/lib/audit/types";
 import type {
-  AuditEvent,
   DemoReviewAnomalyState,
   DemoReviewState,
   ReviewMutationAction,

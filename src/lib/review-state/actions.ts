@@ -1,5 +1,5 @@
 import type { PayrollAnomaly } from "@/lib/domain/types";
-import type { IgnoreReasonCode } from "@/lib/audit/types";
+import type { AuditAction, AuditEvent, IgnoreReasonCode } from "@/lib/audit/types";
 import { getIgnoreReasonLabel, isIgnoreReasonCode } from "@/lib/audit/labels";
 import { reduceDemoReviewState, createReviewAuditEvent, getEffectiveAnomalyStatus } from "./reducers";
 import type {
@@ -108,7 +108,7 @@ export function applyReviewMutation(input: {
   }
 
   const at = (input.now ?? new Date()).toISOString();
-  const auditAction =
+  const auditAction: AuditAction =
     request.action === "generate_customer_message" &&
     (currentState.anomalyStates[anomaly.id]?.messageDraftId || currentState.anomalyStates[anomaly.id]?.messageTone)
       ? "customer_message_tone_regenerated"
@@ -122,7 +122,7 @@ export function applyReviewMutation(input: {
             ? "anomaly_marked_reviewed"
             : "anomaly_waiting_for_customer";
 
-  const auditEvent = {
+  const auditEvent: AuditEvent = {
     id: createReviewAuditEvent(request.action, anomaly.id, "", at).id,
     at,
     actor: "reviewer" as const,
