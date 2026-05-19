@@ -6,6 +6,7 @@ import ReviewGovernanceBanner from "@/components/dashboard/review-governance-ban
 import PageSection from "@/components/layout/page-section";
 import { payrollRunSummary } from "@/lib/payroll/summary";
 import AnomalyList from "@/components/anomalies/anomaly-list";
+import PayrollAssistantPanel from "@/components/assistant/payroll-assistant-panel";
 import { demoAnomalies, demoAuditSeedEntries, demoEmployees } from "@/lib/demo-data";
 import { loadDemoReviewState } from "@/lib/review-state/session-state";
 import { selectAnomalyReviewCards, selectLivePayrollRunSummary } from "@/lib/review-state/selectors";
@@ -30,7 +31,10 @@ export default async function DashboardPage() {
         <ReviewGovernanceBanner />
       </PageSection>
       <PageSection>
-        <AnomalyList cards={anomalyCards} auditEvents={auditEvents} />
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <AnomalyList cards={anomalyCards} auditEvents={auditEvents} />
+          <PayrollAssistantPanel summary={liveSummary} cards={anomalyCards} />
+        </div>
       </PageSection>
     </div>
   );
