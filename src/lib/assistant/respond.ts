@@ -75,11 +75,10 @@ export function respondToAssistantPrompt(input: {
         generatedAt: now,
       };
     }
-
     return {
       promptId,
       title: "Customer message suggestion",
-      body: `Draft a message for ${messageTarget.employee.fullName} about ${messageTarget.anomaly.title}. The goal is to confirm: ${messageTarget.anomaly.suggestedNextAction}`,
+      body: `Next message to send: ${messageTarget.anomaly.title} for ${messageTarget.employee.fullName}. Use the "Generate customer message" action on this anomaly to create a Finnish draft that asks the customer to: ${messageTarget.anomaly.suggestedNextAction}`,
       relatedAnomalyIds: [messageTarget.anomaly.id],
       generatedAt: now,
     };
