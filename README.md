@@ -1,6 +1,6 @@
 # Payroll Review Copilot
 
-A small Next.js app that demonstrates payroll anomaly review flows, demo auth, and automated tests.
+A small Next.js app that demonstrates payroll anomaly review flows, demo auth, a readiness checklist, and automated tests.
 
 ## Quick Start
 
