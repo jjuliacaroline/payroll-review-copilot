@@ -13,8 +13,8 @@ export function setDemoSessionCookie(response: NextResponse, token: string) {
     httpOnly: true,
     maxAge: config.sessionMaxAgeHours * 60 * 60,
     path: "/",
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    sameSite: "none",
+    secure: true,
   });
 }
 
@@ -23,7 +23,7 @@ export function clearDemoSessionCookie(response: NextResponse) {
     httpOnly: true,
     maxAge: 0,
     path: "/",
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    sameSite: "none",
+    secure: true,
   });
 }
