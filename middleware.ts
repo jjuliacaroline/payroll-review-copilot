@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createDemoSessionToken, verifyDemoSessionToken } from "@/lib/auth/session-token";
-import { clearDemoSessionCookie, setDemoSessionCookie } from "@/lib/auth/session-cookie";
+import { verifyDemoSessionToken } from "@/lib/auth/session-token";
+import { clearDemoSessionCookie } from "@/lib/auth/session-cookie";
 import { DEMO_SESSION_COOKIE_NAME } from "@/lib/auth/auth-config";
-import { verifyDemoInviteToken } from "@/lib/auth/invite-token";
-import { createId } from "@/lib/utils/id";
 
 const PUBLIC_ACCESS_PATHS = new Set([
   "/access",
@@ -22,43 +20,34 @@ function isStaticAsset(pathname: string) {
 async function handleAccessRoute(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
 
-  if (!token) {
-    const existingSession = request.cookies.get(DEMO_SESSION_COOKIE_NAME)?.value;
-    if (!existingSession) {
-      return NextResponse.next();
-    }
+  if (token) {
+    const redeemUrl = new URL("/access/redeem", request.url);
+    redeemUrl.searchParams.set("token", token);
 
-    try {
-      await verifyDemoSessionToken(existingSession);
-      return NextResponse.redirect(new URL("/", request.url));
-    } catch (error) {
-      const response = NextResponse.redirect(
-        new URL(
-          error instanceof Error && error.message === "demo_session_expired"
-            ? "/access/session-expired"
-            : "/access/invalid",
-          request.url,
-        ),
-      );
-      clearDemoSessionCookie(response);
-      return response;
-    }
+    const response = NextResponse.redirect(redeemUrl);
+    response.headers.set("Cache-Control", "no-store");
+    return response;
+  }
+
+  const existingSession = request.cookies.get(DEMO_SESSION_COOKIE_NAME)?.value;
+  if (!existingSession) {
+    return NextResponse.next();
   }
 
   try {
-    const invite = await verifyDemoInviteToken(token);
-    const session = await createDemoSessionToken({
-      reviewerLabel: invite.reviewerLabel,
-      sessionId: createId("session"),
-    });
-    const response = NextResponse.redirect(new URL("/", request.url));
-    setDemoSessionCookie(response, session.token);
-    return response;
+    await verifyDemoSessionToken(existingSession);
+    return NextResponse.redirect(new URL("/", request.url));
   } catch (error) {
-    const message = error instanceof Error ? error.message : "";
-    const pathname =
-      message === "demo_invite_expired" ? "/access/expired" : "/access/invalid";
-    return NextResponse.redirect(new URL(pathname, request.url));
+    const response = NextResponse.redirect(
+      new URL(
+        error instanceof Error && error.message === "demo_session_expired"
+          ? "/access/session-expired"
+          : "/access/invalid",
+        request.url,
+      ),
+    );
+    clearDemoSessionCookie(response);
+    return response;
   }
 }
 
