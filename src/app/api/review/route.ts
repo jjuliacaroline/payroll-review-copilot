@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { demoAnomalies } from "@/lib/demo-data";
-import { DEMO_SESSION_COOKIE_NAME, getDemoAuthConfig } from "@/lib/auth/auth-config";
+import { DEMO_SESSION_COOKIE_NAME } from "@/lib/auth/auth-config";
 import { verifyDemoSessionToken } from "@/lib/auth/session-token";
 import { loadDemoReviewState, setDemoReviewStateCookie } from "@/lib/review-state/session-state";
 import { applyReviewMutation, ReviewMutationError } from "@/lib/review-state/actions";
@@ -14,13 +14,16 @@ function isSameOrigin(request: NextRequest) {
   }
 
   try {
-    const config = getDemoAuthConfig();
-    if (!config.baseUrl) {
-      return false;
-    }
-
-    const trustedOrigin = new URL(config.baseUrl).origin;
     const headerOrigin = new URL(origin);
+    const forwardedProto = request.headers.get("x-forwarded-proto");
+    const forwardedHost = request.headers.get("x-forwarded-host");
+    const host = request.headers.get("host");
+    const trustedOrigin =
+      forwardedProto && forwardedHost
+        ? `${forwardedProto}://${forwardedHost}`
+        : host
+          ? `${request.nextUrl.protocol}//${host}`
+          : request.nextUrl.origin;
 
     return headerOrigin.origin === trustedOrigin;
   } catch {
