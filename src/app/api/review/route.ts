@@ -28,12 +28,33 @@ function isSameOrigin(request: NextRequest) {
   }
 }
 
+function readCookieFromHeader(request: NextRequest, name: string) {
+  const parsedValue = request.cookies.get(name)?.value;
+  if (parsedValue) {
+    return parsedValue;
+  }
+
+  const rawCookieHeader = request.headers.get("cookie");
+  if (!rawCookieHeader) {
+    return null;
+  }
+
+  const matchingValues = rawCookieHeader
+    .split(";")
+    .map((part) => part.trim())
+    .filter((part) => part.startsWith(`${name}=`))
+    .map((part) => decodeURIComponent(part.slice(name.length + 1)))
+    .filter(Boolean);
+
+  return matchingValues.at(-1) ?? null;
+}
+
 export async function POST(request: NextRequest) {
   if (!isSameOrigin(request)) {
     return NextResponse.json({ error: "invalid_origin" }, { status: 403 });
   }
 
-  const sessionToken = request.cookies.get(DEMO_SESSION_COOKIE_NAME)?.value;
+  const sessionToken = readCookieFromHeader(request, DEMO_SESSION_COOKIE_NAME);
 
   if (!sessionToken) {
     return NextResponse.json({ error: "missing_session_cookie" }, { status: 401 });
