@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { demoAnomalies } from "@/lib/demo-data";
-import { getDemoAuthConfig } from "@/lib/auth/auth-config";
-import { getOptionalDemoSession } from "@/lib/auth/require-demo-session";
+import { DEMO_SESSION_COOKIE_NAME, getDemoAuthConfig } from "@/lib/auth/auth-config";
+import { verifyDemoSessionToken } from "@/lib/auth/session-token";
 import { loadDemoReviewState, setDemoReviewStateCookie } from "@/lib/review-state/session-state";
 import { applyReviewMutation, ReviewMutationError } from "@/lib/review-state/actions";
 import { isIgnoreReasonCode } from "@/lib/audit/labels";
@@ -33,9 +33,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid_origin" }, { status: 403 });
   }
 
-  const session = await getOptionalDemoSession();
-  if (!session) {
-    return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+  const sessionToken = request.cookies.get(DEMO_SESSION_COOKIE_NAME)?.value;
+
+  if (!sessionToken) {
+    return NextResponse.json({ error: "missing_session_cookie" }, { status: 401 });
+  }
+
+  let session;
+  try {
+    session = await verifyDemoSessionToken(sessionToken);
+  } catch {
+    return NextResponse.json({ error: "invalid_or_expired_session" }, { status: 401 });
   }
 
   let body: unknown;
