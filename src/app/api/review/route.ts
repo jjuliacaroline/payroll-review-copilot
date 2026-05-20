@@ -1,11 +1,47 @@
 import { NextRequest, NextResponse } from "next/server";
 import { demoAnomalies } from "@/lib/demo-data";
-import { DEMO_SESSION_COOKIE_NAME, getDemoAuthConfig } from "@/lib/auth/auth-config";
+import { DEMO_SESSION_COOKIE_NAME } from "@/lib/auth/auth-config";
 import { verifyDemoSessionToken } from "@/lib/auth/session-token";
 import { loadDemoReviewState, setDemoReviewStateCookie } from "@/lib/review-state/session-state";
 import { applyReviewMutation, ReviewMutationError } from "@/lib/review-state/actions";
 import { isIgnoreReasonCode } from "@/lib/audit/labels";
 import type { IgnoreReasonCode } from "@/lib/audit/types";
+
+function tryParseOrigin(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+}
+
+function collectTrustedOrigins(request: NextRequest) {
+  const trustedOrigins = new Set<string>();
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const host = request.headers.get("host");
+
+  if (forwardedProto && forwardedHost) {
+    const origin = tryParseOrigin(`${forwardedProto}://${forwardedHost}`);
+    if (origin) {
+      trustedOrigins.add(origin);
+    }
+  }
+
+  if (host) {
+    const origin = tryParseOrigin(`${request.nextUrl.protocol}//${host}`);
+    if (origin) {
+      trustedOrigins.add(origin);
+    }
+  }
+
+  trustedOrigins.add(request.nextUrl.origin);
+  return trustedOrigins;
+}
 
 function isSameOrigin(request: NextRequest) {
   const origin = request.headers.get("origin");
@@ -13,27 +49,49 @@ function isSameOrigin(request: NextRequest) {
     return false;
   }
 
-  try {
-    const config = getDemoAuthConfig();
-    if (!config.baseUrl) {
-      return false;
-    }
-
-    const trustedOrigin = new URL(config.baseUrl).origin;
-    const headerOrigin = new URL(origin);
-
-    return headerOrigin.origin === trustedOrigin;
-  } catch {
+  const headerOrigin = tryParseOrigin(origin);
+  if (!headerOrigin) {
     return false;
   }
+
+  return collectTrustedOrigins(request).has(headerOrigin);
+}
+
+function readCookieFromHeader(request: NextRequest, name: string) {
+  const parsedValue = request.cookies.get(name)?.value;
+  if (parsedValue) {
+    return parsedValue;
+  }
+
+  const rawCookieHeader = request.headers.get("cookie");
+  if (!rawCookieHeader) {
+    return null;
+  }
+
+  const matchingValues = rawCookieHeader
+    .split(";")
+    .map((part) => part.trim())
+    .filter((part) => part.startsWith(`${name}=`))
+    .map((part) => decodeURIComponent(part.slice(name.length + 1)))
+    .filter(Boolean);
+
+  return matchingValues.at(-1) ?? null;
 }
 
 export async function POST(request: NextRequest) {
   if (!isSameOrigin(request)) {
+    console.error("review.invalid_origin", {
+      origin: request.headers.get("origin"),
+      host: request.headers.get("host"),
+      forwardedHost: request.headers.get("x-forwarded-host"),
+      forwardedProto: request.headers.get("x-forwarded-proto"),
+      nextUrlOrigin: request.nextUrl.origin,
+      trustedOrigins: [...collectTrustedOrigins(request)],
+    });
     return NextResponse.json({ error: "invalid_origin" }, { status: 403 });
   }
 
-  const sessionToken = request.cookies.get(DEMO_SESSION_COOKIE_NAME)?.value;
+  const sessionToken = readCookieFromHeader(request, DEMO_SESSION_COOKIE_NAME);
 
   if (!sessionToken) {
     return NextResponse.json({ error: "missing_session_cookie" }, { status: 401 });

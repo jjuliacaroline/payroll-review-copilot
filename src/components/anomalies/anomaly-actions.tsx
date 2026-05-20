@@ -11,6 +11,7 @@ import { createId } from "@/lib/utils/id";
 import MessageDraftModal from "@/components/messages/message-draft-modal";
 import type { ReviewMutationAction } from "@/lib/review-state/types";
 import type { AuditEvent, IgnoreReasonCode } from "@/lib/audit/types";
+import { useDemoReviewState } from "@/components/dashboard/demo-review-state-context";
 import AnomalyDetailDrawer from "./anomaly-detail-drawer";
 import IgnoreReasonDialog from "./ignore-reason-dialog";
 import { formatActionSaveError } from "./review-action-errors";
@@ -43,6 +44,7 @@ async function writeTextToClipboard(text: string) {
 
 export default function AnomalyActions({ card, auditEvents }: AnomalyActionsProps) {
   const router = useRouter();
+  const { applyClientFallbackMutation, clearClientFallbackState } = useDemoReviewState();
   const [isSavingReview, setIsSavingReview] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [isGeneratingMessage, setIsGeneratingMessage] = useState(false);
@@ -97,10 +99,24 @@ export default function AnomalyActions({ card, auditEvents }: AnomalyActionsProp
         throw new Error(payload?.error ?? "review_update_failed");
       }
 
+      clearClientFallbackState();
       router.refresh();
     } catch (error) {
-      const errorCode = error instanceof Error ? error.message : null;
-      setErrorMessage(formatActionSaveError("Unable to save this action right now.", errorCode));
+      try {
+        applyClientFallbackMutation({
+          anomalyId: card.anomaly.id,
+          action,
+        });
+        setErrorMessage(null);
+      } catch (fallbackError) {
+        const errorCode =
+          fallbackError instanceof Error
+            ? fallbackError.message
+            : error instanceof Error
+              ? error.message
+              : null;
+        setErrorMessage(formatActionSaveError("Unable to save this action right now.", errorCode));
+      }
     } finally {
       setIsSavingReview(false);
     }
@@ -134,6 +150,8 @@ export default function AnomalyActions({ card, auditEvents }: AnomalyActionsProp
       const payloadJson = (await response.json().catch(() => null)) as { error?: string } | null;
       throw new Error(payloadJson?.error ?? "message_update_failed");
     }
+
+    clearClientFallbackState();
   }
 
   async function openDraftWithTone(tone: MessageTone) {
@@ -153,8 +171,24 @@ export default function AnomalyActions({ card, auditEvents }: AnomalyActionsProp
     try {
       await persistCustomerMessage("generate_customer_message", nextDraft);
     } catch (error) {
-      const errorCode = error instanceof Error ? error.message : null;
-      setErrorMessage(formatActionSaveError("Unable to save this draft right now.", errorCode));
+      try {
+        applyClientFallbackMutation({
+          anomalyId: card.anomaly.id,
+          action: "generate_customer_message",
+          draftId: nextDraft.id,
+          tone: nextDraft.tone,
+          generatedAt: nextDraft.generatedAt,
+        });
+        setErrorMessage(null);
+      } catch (fallbackError) {
+        const errorCode =
+          fallbackError instanceof Error
+            ? fallbackError.message
+            : error instanceof Error
+              ? error.message
+              : null;
+        setErrorMessage(formatActionSaveError("Unable to save this draft right now.", errorCode));
+      }
     } finally {
       setIsGeneratingMessage(false);
     }
@@ -202,8 +236,24 @@ export default function AnomalyActions({ card, auditEvents }: AnomalyActionsProp
     try {
       await persistCustomerMessage("generate_customer_message", nextDraft);
     } catch (error) {
-      const errorCode = error instanceof Error ? error.message : null;
-      setErrorMessage(formatActionSaveError("Unable to save this draft right now.", errorCode));
+      try {
+        applyClientFallbackMutation({
+          anomalyId: card.anomaly.id,
+          action: "generate_customer_message",
+          draftId: nextDraft.id,
+          tone: nextDraft.tone,
+          generatedAt: nextDraft.generatedAt,
+        });
+        setErrorMessage(null);
+      } catch (fallbackError) {
+        const errorCode =
+          fallbackError instanceof Error
+            ? fallbackError.message
+            : error instanceof Error
+              ? error.message
+              : null;
+        setErrorMessage(formatActionSaveError("Unable to save this draft right now.", errorCode));
+      }
     } finally {
       setIsGeneratingMessage(false);
     }
@@ -223,8 +273,23 @@ export default function AnomalyActions({ card, auditEvents }: AnomalyActionsProp
       setDraft(null);
       router.refresh();
     } catch (error) {
-      const errorCode = error instanceof Error ? error.message : null;
-      setErrorMessage(formatActionSaveError("Unable to mark this message as sent right now.", errorCode));
+      try {
+        applyClientFallbackMutation({
+          anomalyId: card.anomaly.id,
+          action: "mark_customer_message_sent",
+        });
+        setIsMessageModalOpen(false);
+        setDraft(null);
+        setErrorMessage(null);
+      } catch (fallbackError) {
+        const errorCode =
+          fallbackError instanceof Error
+            ? fallbackError.message
+            : error instanceof Error
+              ? error.message
+              : null;
+        setErrorMessage(formatActionSaveError("Unable to mark this message as sent right now.", errorCode));
+      }
     } finally {
       setIsSendingMessage(false);
     }
@@ -254,12 +319,30 @@ export default function AnomalyActions({ card, auditEvents }: AnomalyActionsProp
         throw new Error(payload?.error ?? "review_update_failed");
       }
 
+      clearClientFallbackState();
       setIsIgnoreDialogOpen(false);
       setIsDetailOpen(false);
       router.refresh();
     } catch (error) {
-      const errorCode = error instanceof Error ? error.message : null;
-      setIgnoreErrorMessage(formatActionSaveError("Unable to ignore this anomaly right now.", errorCode));
+      try {
+        applyClientFallbackMutation({
+          anomalyId: card.anomaly.id,
+          action: "ignore_with_reason",
+          reason,
+          note,
+        });
+        setIsIgnoreDialogOpen(false);
+        setIsDetailOpen(false);
+        setIgnoreErrorMessage(null);
+      } catch (fallbackError) {
+        const errorCode =
+          fallbackError instanceof Error
+            ? fallbackError.message
+            : error instanceof Error
+              ? error.message
+              : null;
+        setIgnoreErrorMessage(formatActionSaveError("Unable to ignore this anomaly right now.", errorCode));
+      }
     } finally {
       setIsSavingReview(false);
     }

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { POST } from "./route";
+import { createDemoSessionToken } from "@/lib/auth/session-token";
 import { getOptionalDemoSession } from "@/lib/auth/require-demo-session";
 import { loadDemoReviewState } from "@/lib/review-state/session-state";
 
@@ -19,7 +20,7 @@ const mockLoadDemoReviewState = vi.mocked(loadDemoReviewState);
 function setTestEnv() {
   process.env.DEMO_INVITE_SECRET = "invite-secret";
   process.env.DEMO_SESSION_SECRET = "session-secret";
-  process.env.DEMO_BASE_URL = "http://127.0.0.1:3001";
+  process.env.DEMO_BASE_URL = "http://localhost:3001";
 }
 
 function clearTestEnv() {
@@ -29,15 +30,24 @@ function clearTestEnv() {
 }
 
 function makeRequest(origin: string, body: Record<string, unknown>, cookie = "demo") {
-  return new NextRequest("http://127.0.0.1:3001/api/review", {
+  return new NextRequest("http://localhost:3001/api/review", {
     method: "POST",
     headers: {
       origin,
-      cookie,
+      cookie: `payroll_review_demo_session=${cookie}`,
       "content-type": "application/json",
     },
     body: JSON.stringify(body),
   });
+}
+
+async function createSessionCookie() {
+  const { token } = await createDemoSessionToken({
+    reviewerLabel: "Reviewer",
+    sessionId: "session_123",
+  });
+
+  return token;
 }
 
 describe("review route", () => {
@@ -51,7 +61,7 @@ describe("review route", () => {
 
   it("rejects unauthenticated requests", async () => {
     mockGetOptionalDemoSession.mockResolvedValue(null);
-    const request = makeRequest("http://127.0.0.1:3001", {
+    const request = makeRequest("http://localhost:3001", {
       anomalyId: "anom_missing_tax_card",
       action: "mark_as_reviewed",
     });
@@ -91,10 +101,10 @@ describe("review route", () => {
       expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
     });
 
-    const request = new NextRequest("http://127.0.0.1:3001/api/review", {
+    const request = new NextRequest("http://localhost:3001/api/review", {
       method: "POST",
       headers: {
-        cookie: "demo",
+        cookie: "payroll_review_demo_session=demo",
         "content-type": "application/json",
       },
       body: JSON.stringify({
@@ -122,10 +132,10 @@ describe("review route", () => {
       auditEvents: [],
     });
 
-    const request = makeRequest("http://127.0.0.1:3001", {
+    const request = makeRequest("http://localhost:3001", {
       anomalyId: "anom_missing_tax_card",
       action: "mark_as_reviewed",
-    });
+    }, await createSessionCookie());
 
     const response = await POST(request);
 
@@ -146,12 +156,12 @@ describe("review route", () => {
       auditEvents: [],
     });
 
-    const request = makeRequest("http://127.0.0.1:3001", {
+    const request = makeRequest("http://localhost:3001", {
       anomalyId: "anom_missing_tax_card",
       action: "ignore_with_reason",
       reason: "false_positive",
       note: "Duplicate change already applied.",
-    });
+    }, await createSessionCookie());
 
     const response = await POST(request);
 
