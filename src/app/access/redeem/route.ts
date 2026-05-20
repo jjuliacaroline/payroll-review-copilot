@@ -21,7 +21,27 @@ export async function GET(request: NextRequest) {
       sessionId: createId("session"),
     });
 
-    const response = NextResponse.redirect(new URL("/", request.url));
+    const response = new NextResponse(
+      `<!doctype html>
+      <html>
+        <head>
+          <meta http-equiv="refresh" content="0;url=/" />
+          <title>Opening demo...</title>
+        </head>
+        <body>
+          <p>Opening demo...</p>
+          <script>window.location.replace("/");</script>
+        </body>
+      </html>`,
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-store",
+        },
+      },
+    );
+
     setDemoSessionCookie(response, session.token);
     return response;
   } catch (error) {
