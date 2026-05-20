@@ -13,6 +13,7 @@ import type { ReviewMutationAction } from "@/lib/review-state/types";
 import type { AuditEvent, IgnoreReasonCode } from "@/lib/audit/types";
 import AnomalyDetailDrawer from "./anomaly-detail-drawer";
 import IgnoreReasonDialog from "./ignore-reason-dialog";
+import { formatActionSaveError } from "./review-action-errors";
 
 type AnomalyActionsProps = {
   card: AnomalyReviewCardViewModel;
@@ -81,6 +82,7 @@ export default function AnomalyActions({ card, auditEvents }: AnomalyActionsProp
     try {
       const response = await fetch("/api/review", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
@@ -96,8 +98,9 @@ export default function AnomalyActions({ card, auditEvents }: AnomalyActionsProp
       }
 
       router.refresh();
-    } catch {
-      setErrorMessage("Unable to save this action right now.");
+    } catch (error) {
+      const errorCode = error instanceof Error ? error.message : null;
+      setErrorMessage(formatActionSaveError("Unable to save this action right now.", errorCode));
     } finally {
       setIsSavingReview(false);
     }
@@ -120,6 +123,7 @@ export default function AnomalyActions({ card, auditEvents }: AnomalyActionsProp
 
     const response = await fetch("/api/review", {
       method: "POST",
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
       },
@@ -148,8 +152,9 @@ export default function AnomalyActions({ card, auditEvents }: AnomalyActionsProp
 
     try {
       await persistCustomerMessage("generate_customer_message", nextDraft);
-    } catch {
-      setErrorMessage("Unable to save this draft right now.");
+    } catch (error) {
+      const errorCode = error instanceof Error ? error.message : null;
+      setErrorMessage(formatActionSaveError("Unable to save this draft right now.", errorCode));
     } finally {
       setIsGeneratingMessage(false);
     }
@@ -196,8 +201,9 @@ export default function AnomalyActions({ card, auditEvents }: AnomalyActionsProp
 
     try {
       await persistCustomerMessage("generate_customer_message", nextDraft);
-    } catch {
-      setErrorMessage("Unable to save this draft right now.");
+    } catch (error) {
+      const errorCode = error instanceof Error ? error.message : null;
+      setErrorMessage(formatActionSaveError("Unable to save this draft right now.", errorCode));
     } finally {
       setIsGeneratingMessage(false);
     }
@@ -216,8 +222,9 @@ export default function AnomalyActions({ card, auditEvents }: AnomalyActionsProp
       setIsMessageModalOpen(false);
       setDraft(null);
       router.refresh();
-    } catch {
-      setErrorMessage("Unable to mark this message as sent right now.");
+    } catch (error) {
+      const errorCode = error instanceof Error ? error.message : null;
+      setErrorMessage(formatActionSaveError("Unable to mark this message as sent right now.", errorCode));
     } finally {
       setIsSendingMessage(false);
     }
@@ -230,6 +237,7 @@ export default function AnomalyActions({ card, auditEvents }: AnomalyActionsProp
     try {
       const response = await fetch("/api/review", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
@@ -249,8 +257,9 @@ export default function AnomalyActions({ card, auditEvents }: AnomalyActionsProp
       setIsIgnoreDialogOpen(false);
       setIsDetailOpen(false);
       router.refresh();
-    } catch {
-      setIgnoreErrorMessage("Unable to ignore this anomaly right now.");
+    } catch (error) {
+      const errorCode = error instanceof Error ? error.message : null;
+      setIgnoreErrorMessage(formatActionSaveError("Unable to ignore this anomaly right now.", errorCode));
     } finally {
       setIsSavingReview(false);
     }
