@@ -7,28 +7,54 @@ import { applyReviewMutation, ReviewMutationError } from "@/lib/review-state/act
 import { isIgnoreReasonCode } from "@/lib/audit/labels";
 import type { IgnoreReasonCode } from "@/lib/audit/types";
 
+function tryParseOrigin(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+}
+
+function collectTrustedOrigins(request: NextRequest) {
+  const trustedOrigins = new Set<string>();
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const host = request.headers.get("host");
+
+  if (forwardedProto && forwardedHost) {
+    const origin = tryParseOrigin(`${forwardedProto}://${forwardedHost}`);
+    if (origin) {
+      trustedOrigins.add(origin);
+    }
+  }
+
+  if (host) {
+    const origin = tryParseOrigin(`${request.nextUrl.protocol}//${host}`);
+    if (origin) {
+      trustedOrigins.add(origin);
+    }
+  }
+
+  trustedOrigins.add(request.nextUrl.origin);
+  return trustedOrigins;
+}
+
 function isSameOrigin(request: NextRequest) {
   const origin = request.headers.get("origin");
   if (!origin) {
     return false;
   }
 
-  try {
-    const headerOrigin = new URL(origin);
-    const forwardedProto = request.headers.get("x-forwarded-proto");
-    const forwardedHost = request.headers.get("x-forwarded-host");
-    const host = request.headers.get("host");
-    const trustedOrigin =
-      forwardedProto && forwardedHost
-        ? `${forwardedProto}://${forwardedHost}`
-        : host
-          ? `${request.nextUrl.protocol}//${host}`
-          : request.nextUrl.origin;
-
-    return headerOrigin.origin === trustedOrigin;
-  } catch {
+  const headerOrigin = tryParseOrigin(origin);
+  if (!headerOrigin) {
     return false;
   }
+
+  return collectTrustedOrigins(request).has(headerOrigin);
 }
 
 function readCookieFromHeader(request: NextRequest, name: string) {
@@ -54,6 +80,14 @@ function readCookieFromHeader(request: NextRequest, name: string) {
 
 export async function POST(request: NextRequest) {
   if (!isSameOrigin(request)) {
+    console.error("review.invalid_origin", {
+      origin: request.headers.get("origin"),
+      host: request.headers.get("host"),
+      forwardedHost: request.headers.get("x-forwarded-host"),
+      forwardedProto: request.headers.get("x-forwarded-proto"),
+      nextUrlOrigin: request.nextUrl.origin,
+      trustedOrigins: [...collectTrustedOrigins(request)],
+    });
     return NextResponse.json({ error: "invalid_origin" }, { status: 403 });
   }
 
