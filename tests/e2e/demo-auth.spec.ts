@@ -37,7 +37,20 @@ test.beforeEach(async ({ context }) => {
 test("redirects unauthenticated users to access page", async ({ page }) => {
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: "Demo access required" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Explore the payroll review demo" })).toBeVisible();
+});
+
+test("enters the portfolio demo with one click", async ({ page }) => {
+  await page.goto("/access");
+  await page.getByRole("button", { name: "Try the demo" }).click();
+
+  await expect(page).toHaveURL("/");
+  await expect(page.getByText("Signed in as Portfolio Guest")).toBeVisible();
+  await expect(page.getByText("Demo mode · Synthetic data")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Demo Company Oy" })).toBeVisible();
+
+  await page.getByRole("link", { name: "Leave demo" }).click();
+  await expect(page.getByRole("heading", { name: "You are now logged out" })).toBeVisible();
 });
 
 test("renders the dashboard shell for an authenticated session", async ({ page }) => {
