@@ -20,7 +20,7 @@ async function signInForPlaywright(page: Page) {
     {
       name: DEMO_SESSION_COOKIE_NAME,
       value: token,
-      domain: "127.0.0.1",
+      domain: "localhost",
       path: "/",
       httpOnly: true,
       secure: false,
