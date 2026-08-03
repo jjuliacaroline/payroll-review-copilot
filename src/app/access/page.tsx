@@ -35,16 +35,29 @@ export default async function AccessPage({ searchParams }: AccessPageProps) {
   return (
     <AccessStateCard
       eyebrow="Payroll Review Copilot"
-      title="Demo access required"
-      description="Access is granted through a secure invite link. There is no password prompt and no account creation."
+      title="Explore the payroll review demo"
+      description="Enter the portfolio demo instantly with synthetic data, or use a signed invite link for a private demo session."
     >
-      <AccessStatusPanel
-        items={[
-          "Open the private invite link you received.",
-          "The link is signed and expires automatically.",
-          "If the link is no longer valid, request a fresh invite.",
-        ]}
-      />
+      <form action="/access/guest" method="post">
+        <button
+          className="w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+          type="submit"
+        >
+          Try the demo
+        </button>
+      </form>
+      <p className="mt-3 text-center text-xs text-slate-500">
+        No account, password, email, or invite token required.
+      </p>
+      <div className="mt-6">
+        <AccessStatusPanel
+          items={[
+            "The public demo uses synthetic payroll data.",
+            "Private signed invite links still work as before.",
+            "Demo sessions expire automatically.",
+          ]}
+        />
+      </div>
     </AccessStateCard>
   );
 }
